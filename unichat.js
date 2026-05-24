@@ -762,107 +762,102 @@ document.addEventListener('DOMContentLoaded', () => {
 // EDIT PROFILE LOGIC
 // ==============================
 
-function openSidebarEditProfile() {
-    const sidebar = document.getElementById('rightSidebar');
-    const viewMode = document.getElementById('sidebarViewMode');
-    const editMode = document.getElementById('sidebarEditMode');
-
-    // Open sidebar if not open
-    if (sidebar) {
-        sidebar.classList.add('active');
-    }
-
-    // Switch to Edit Mode
-    if (viewMode) viewMode.style.display = 'none';
-    if (editMode) editMode.style.display = 'block';
-
-    // Populate fields with current user data
-    const nameInput = document.getElementById('editSidebarName');
-    const usernameInput = document.getElementById('editSidebarUsername');
-    const bioInput = document.getElementById('editSidebarBio');
-    const editAvatar = document.getElementById('editProfileAvatar');
-
-    if (nameInput) nameInput.value = currentUser.name;
-    if (usernameInput) usernameInput.value = currentUser.username;
-    if (bioInput) bioInput.value = currentUser.bio;
-
-    // Update avatar preview
-    if (editAvatar) {
-        if (currentUser.profilePic) {
-            editAvatar.style.backgroundImage = `url(${currentUser.profilePic})`;
-            editAvatar.style.backgroundSize = 'cover';
-            editAvatar.textContent = '';
-        } else {
-            editAvatar.style.backgroundImage = 'none';
-            editAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
-        }
-    }
-}
-
 function previewProfilePic(event) {
     const file = event.target.files[0];
     if (file) {
         const reader = new FileReader();
-        
-        reader.onload = function(e) {
-            const editAvatar = document.getElementById('editProfileAvatar');
-            
-            // Update preview instantly
-            if (editAvatar) {
-                editAvatar.style.backgroundImage = `url(${e.target.result})`;
-                editAvatar.style.backgroundSize = 'cover';
-                editAvatar.textContent = '';
-            }
-            
-            // Temporarily save to current user object
-            currentUser.profilePic = e.target.result;
-        }
-
+        reader.onload = function(event) {
+            document.getElementById('editProfileAvatar').textContent = '';
+            document.getElementById('editProfileAvatar').style.backgroundImage = `url(${event.target.result})`;
+            document.getElementById('editProfileAvatar').style.backgroundSize = 'cover';
+        };
         reader.readAsDataURL(file);
     }
 }
-
+// Save changes from sidebar edit mode (WITH PICTURE)
 function saveSidebarProfile() {
-    const nameInput = document.getElementById('editSidebarName');
-    const usernameInput = document.getElementById('editSidebarUsername');
-    const bioInput = document.getElementById('editSidebarBio');
+    const newName = document.getElementById('editSidebarName').value;
+    const newUsername = document.getElementById('editSidebarUsername').value;
+    const newBio = document.getElementById('editSidebarBio').value;
 
-    // Validation
-    if (nameInput && nameInput.value.trim() === "") {
-        alert("Name cannot be empty!");
-        return;
+    // Get the profile picture (background image)
+    const editAvatar = document.getElementById('editProfileAvatar');
+    const profilePic = editAvatar.style.backgroundImage;
+
+    if (newName && newUsername) {
+        // Update current user data
+        currentUser.name = newName;
+        currentUser.username = newUsername;
+        currentUser.bio = newBio;
+        
+        // Save profile picture if changed
+        if (profilePic && profilePic !== 'none') {
+            currentUser.profilePic = profilePic;
+        }
+
+        // Update Header/Menu Avatar
+        document.getElementById('menuUserName').textContent = currentUser.name;
+        document.getElementById('menuAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+        
+        // Update Profile View (View Mode)
+        updateProfileView();
+
+        alert('Profile updated successfully!');
+        saveCurrentState();
+        closeSidebarEditMode();
+    } else {
+        alert('Name and Username are required!');
     }
-
-    // Update Global User Object
-    if (nameInput) currentUser.name = nameInput.value;
-    if (usernameInput) currentUser.username = usernameInput.value;
-    if (bioInput) currentUser.bio = bioInput.value;
-
-    // Save to Local Storage
-    saveCurrentState();
-
-    // Update UI (Header)
-    applyUserSettings();
-
-    // Close Sidebar
-    closeSidebarEditMode();
-    
-    alert('Profile updated successfully!');
 }
-
+// Close the edit mode in right sidebar and go back to chat
 function closeSidebarEditMode() {
+    // First switch to view mode (show updated profile)
+    document.getElementById('sidebarEditMode').style.display = 'none';
+    document.getElementById('sidebarViewMode').style.display = 'block';
+    
+    // UPDATE PROFILE VIEW WITH NEW DATA
+    updateProfileView();
+    
+    // Close the sidebar completely to go back to chat
     const sidebar = document.getElementById('rightSidebar');
-    const viewMode = document.getElementById('sidebarViewMode');
-    const editMode = document.getElementById('sidebarEditMode');
+    sidebar.classList.remove('active');
+}
+// Open edit mode in right sidebar
+function openSidebarEditProfile() {
+    // Close dropdowns
+    document.getElementById('mainDropdown').style.display = 'none';
+    document.getElementById('settingsDropdown').style.display = 'none';
 
-    // Close sidebar
-    if (sidebar) {
-        sidebar.classList.remove('active');
+    // Close right sidebar first if not open, or switch to view mode
+    const sidebar = document.getElementById('rightSidebar');
+    sidebar.classList.add('active');
+
+    // Show edit mode
+    document.getElementById('sidebarViewMode').style.display = 'none';
+    document.getElementById('sidebarEditMode').style.display = 'block';
+
+    // Pre-fill current data
+    document.getElementById('editSidebarName').value = currentUser.name;
+    document.getElementById('editSidebarUsername').value = currentUser.username;
+    document.getElementById('editSidebarBio').value = currentUser.bio;
+}
+// Update profile view with current user data
+function updateProfileView() {
+    // Update Name
+    document.getElementById('profileName').textContent = currentUser.name;
+    
+    // Update Avatar Initial
+    document.getElementById('profileAvatar').textContent = currentUser.name.charAt(0).toUpperCase();
+    
+    // Update Profile Picture if exists
+    if (currentUser.profilePic) {
+        document.getElementById('profileAvatar').style.backgroundImage = currentUser.profilePic;
+        document.getElementById('profileAvatar').style.backgroundSize = 'cover';
+        document.getElementById('profileAvatar').style.backgroundPosition = 'center';
     }
-
-    // Switch back to View Mode for next time
-    if (editMode) editMode.style.display = 'none';
-    if (viewMode) viewMode.style.display = 'block';
+    
+    // Update Bio
+    document.getElementById('profileBio').textContent = currentUser.bio;
 }
 
 function switchUser() {
