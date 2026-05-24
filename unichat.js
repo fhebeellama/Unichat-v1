@@ -556,19 +556,266 @@ document.addEventListener('DOMContentLoaded', () => {
 
 });
 
-function toggleMenu() {}
-function showSettings() {}
-function showMainMenu() {}
-function toggleStatus() {}
-function openSidebarEditProfile() {}
-function toggleRightSidebar() {}
-function addEmoji() {}
-function switchUser() {}
-function searchEmojiGif() {}
-function showEmojiTab() {}
-function previewProfilePic() {}
-function saveSidebarProfile() {}
-function closeSidebarEditMode() {}
+// ==============================
+// DROPDOWN MENU
+// ==============================
+function toggleMenu() {
+    const dropdown = document.getElementById('mainDropdown');
+
+    if (
+        dropdown.style.display === 'none' ||
+        dropdown.style.display === ''
+    ) {
+        dropdown.style.display = 'block';
+    } else {
+        dropdown.style.display = 'none';
+    }
+}
+
+document.addEventListener('click', function(e) {
+
+    const menuHeader = document.querySelector('.menu-header');
+
+    if (menuHeader && !menuHeader.contains(e.target)) {
+
+        document.getElementById('mainDropdown').style.display = 'none';
+
+        document.getElementById('settingsDropdown').style.display = 'none';
+    }
+});
+
+function showSettings() {
+
+    document.getElementById('mainDropdown').style.display = 'none';
+
+    document.getElementById('settingsDropdown').style.display = 'block';
+}
+
+function showMainMenu() {
+
+    document.getElementById('settingsDropdown').style.display = 'none';
+
+    document.getElementById('mainDropdown').style.display = 'block';
+}
+
+// ==============================
+// ONLINE STATUS
+// ==============================
+function toggleStatus() {
+
+    const toggle = document.getElementById('statusToggle');
+
+    toggle.classList.toggle('active');
+
+    currentUser.isOnline =
+        toggle.classList.contains('active');
+
+    const profileStatus =
+        document.querySelector('.profile-status');
+
+    if (profileStatus) {
+
+        profileStatus.textContent =
+            currentUser.isOnline
+                ? '● Online'
+                : '○ Offline';
+    }
+
+    saveCurrentState();
+}
+
+// ==============================
+// RIGHT SIDEBAR
+// ==============================
+function toggleRightSidebar() {
+
+    const sidebar =
+        document.getElementById('rightSidebar');
+
+    sidebar.classList.toggle('active');
+}
+
+// ==============================
+// OPEN EDIT PROFILE
+// ==============================
+function openSidebarEditProfile() {
+
+    document.getElementById('mainDropdown')
+        .style.display = 'none';
+
+    document.getElementById('settingsDropdown')
+        .style.display = 'none';
+
+    const sidebar =
+        document.getElementById('rightSidebar');
+
+    sidebar.classList.add('active');
+
+    document.getElementById('sidebarViewMode')
+        .style.display = 'none';
+
+    document.getElementById('sidebarEditMode')
+        .style.display = 'block';
+
+    document.getElementById('editSidebarName')
+        .value = currentUser.name;
+
+    document.getElementById('editSidebarUsername')
+        .value = currentUser.username;
+
+    document.getElementById('editSidebarBio')
+        .value = currentUser.bio;
+}
+
+// ==============================
+// PREVIEW PROFILE PICTURE
+// ==============================
+function previewProfilePic(event) {
+
+    const file = event.target.files[0];
+
+    if (!file) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function(e) {
+
+        const avatar =
+            document.getElementById('editProfileAvatar');
+
+        avatar.textContent = '';
+
+        avatar.style.backgroundImage =
+            `url(${e.target.result})`;
+
+        avatar.style.backgroundSize = 'cover';
+
+        avatar.style.backgroundPosition = 'center';
+    };
+
+    reader.readAsDataURL(file);
+}
+
+// ==============================
+// SAVE PROFILE
+// ==============================
+function saveSidebarProfile() {
+
+    const newName =
+        document.getElementById('editSidebarName').value;
+
+    const newUsername =
+        document.getElementById('editSidebarUsername').value;
+
+    const newBio =
+        document.getElementById('editSidebarBio').value;
+
+    const editAvatar =
+        document.getElementById('editProfileAvatar');
+
+    const profilePic =
+        editAvatar.style.backgroundImage;
+
+    if (!newName || !newUsername) {
+
+        alert('Name and Username are required!');
+
+        return;
+    }
+
+    currentUser.name = newName;
+
+    currentUser.username = newUsername;
+
+    currentUser.bio = newBio;
+
+    if (profilePic && profilePic !== 'none') {
+
+        currentUser.profilePic = profilePic;
+    }
+
+    saveCurrentState();
+
+    applyUserSettings();
+
+    alert('Profile updated successfully!');
+
+    closeSidebarEditMode();
+}
+
+// ==============================
+// CLOSE EDIT MODE
+// ==============================
+function closeSidebarEditMode() {
+
+    document.getElementById('sidebarEditMode')
+        .style.display = 'none';
+
+    document.getElementById('sidebarViewMode')
+        .style.display = 'block';
+
+    updateProfileView();
+
+    document.getElementById('rightSidebar')
+        .classList.remove('active');
+}
+
+// ==============================
+// SWITCH USER
+// ==============================
+function switchUser(userName) {
+
+    const headerName =
+        document.querySelector('.chat-header h3');
+
+    const avatar =
+        document.querySelector('.chat-header .avatar');
+
+    if (headerName) {
+        headerName.textContent = userName;
+    }
+
+    if (avatar) {
+        avatar.textContent =
+            userName.charAt(0).toUpperCase();
+    }
+}
+
+// ==============================
+// EMOJI FUNCTIONS
+// ==============================
+function addEmoji() {
+
+    const picker =
+        document.getElementById('emojiPicker');
+
+    picker.classList.toggle('hidden');
+}
+
+function showEmojiTab(tab) {
+
+    document.getElementById('emojiTab')
+        .classList.remove('active');
+
+    document.getElementById('gifTab')
+        .classList.remove('active');
+
+    if (tab === 'emoji') {
+
+        document.getElementById('emojiTab')
+            .classList.add('active');
+
+    } else {
+
+        document.getElementById('gifTab')
+            .classList.add('active');
+    }
+}
+
+function searchEmojiGif(value) {
+
+    console.log('Searching:', value);
+}
 
 window.startApp = startApp;
 window.toggleMenu = toggleMenu;
