@@ -1,4 +1,3 @@
-
 // ==============================
 // FIREBASE IMPORTS
 // ==============================
@@ -26,12 +25,12 @@ import {
 // FIREBASE CONFIG
 // ==============================
 const firebaseConfig = {
-    apiKey: "AIzaSyDdVR0x17NB3ma4ulyL-Jdv3rukfNijwgs",
-    authDomain: "unichat-v1.firebaseapp.com",
-    projectId: "unichat-v1",
-    storageBucket: "unichat-v1.firebasestorage.app",
-    messagingSenderId: "1014572806433",
-    appId: "1:1014572806433:web:d496a60f3011993217ce60"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_DOMAIN.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_BUCKET.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
 };
 
 // ==============================
@@ -45,9 +44,9 @@ const db = getFirestore(app);
 // GLOBAL VARIABLES
 // ==============================
 let currentUser = {
-    name: "",
-    username: "",
-    bio: "Hey there! I am using Unichat",
+    name: "User",
+    username: "user123",
+    bio: "Hey there! I am using Unichat.",
     isOnline: true,
     darkMode: false,
     profilePic: ""
@@ -56,18 +55,21 @@ let currentUser = {
 let isRecording = false;
 let mediaRecorder;
 let audioChunks = [];
-let isBlocked = false;
 let chatMessages = {};
 
 // ==============================
 // LOCAL STORAGE
 // ==============================
 function saveCurrentState() {
-    localStorage.setItem('unichatUser', JSON.stringify(currentUser));
+    localStorage.setItem(
+        'unichatUser',
+        JSON.stringify(currentUser)
+    );
 }
 
 function loadSavedState() {
-    const savedUser = localStorage.getItem('unichatUser');
+    const savedUser =
+        localStorage.getItem('unichatUser');
 
     if (savedUser) {
         currentUser = JSON.parse(savedUser);
@@ -82,35 +84,48 @@ function clearSession() {
 }
 
 function saveChatMessages() {
-    localStorage.setItem('unichatMessages', JSON.stringify(chatMessages));
+    localStorage.setItem(
+        'unichatMessages',
+        JSON.stringify(chatMessages)
+    );
 }
 
 function loadChatMessages() {
-    const savedMessages = localStorage.getItem('unichatMessages');
+    const saved =
+        localStorage.getItem('unichatMessages');
 
-    if (savedMessages) {
-        chatMessages = JSON.parse(savedMessages);
+    if (saved) {
+        chatMessages = JSON.parse(saved);
     }
 }
 
 // ==============================
-// START APP
+// SPLASH SCREEN
 // ==============================
 function startApp() {
-    const splash = document.getElementById('splashScreen');
+
+    const splash =
+        document.getElementById('splashScreen');
 
     if (splash) {
         splash.classList.add('hidden');
     }
 
     setTimeout(() => {
+
         loadChatMessages();
 
         if (loadSavedState()) {
+
             showDashboardLoggedIn();
+
         } else {
-            document.querySelector('.auth-container')?.classList.remove('hidden');
+
+            document
+                .querySelector('.auth-container')
+                ?.classList.remove('hidden');
         }
+
     }, 500);
 }
 
@@ -120,9 +135,13 @@ window.startApp = startApp;
 // DASHBOARD
 // ==============================
 function showDashboardLoggedIn() {
-    document.querySelector('.auth-container')?.classList.add('hidden');
 
-    const dashboard = document.getElementById('dashboard');
+    document
+        .querySelector('.auth-container')
+        ?.classList.add('hidden');
+
+    const dashboard =
+        document.getElementById('dashboard');
 
     if (dashboard) {
         dashboard.style.display = 'flex';
@@ -132,56 +151,129 @@ function showDashboardLoggedIn() {
 }
 
 function applyUserSettings() {
-    const menuUserName = document.getElementById('menuUserName');
-    const menuAvatar = document.getElementById('menuAvatar');
+
+    const menuUserName =
+        document.getElementById('menuUserName');
+
+    const menuAvatar =
+        document.getElementById('menuAvatar');
 
     if (menuUserName) {
         menuUserName.textContent = currentUser.name;
     }
 
     if (menuAvatar) {
-        menuAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
+
+        menuAvatar.textContent =
+            currentUser.name.charAt(0).toUpperCase();
 
         if (currentUser.profilePic) {
-            menuAvatar.style.backgroundImage = currentUser.profilePic;
+
+            menuAvatar.style.backgroundImage =
+                currentUser.profilePic;
+
             menuAvatar.style.backgroundSize = 'cover';
+
             menuAvatar.style.backgroundPosition = 'center';
         }
     }
 
-    const profileStatus = document.querySelector('.profile-status');
+    const profileStatus =
+        document.querySelector('.profile-status');
 
     if (profileStatus) {
-        profileStatus.textContent = currentUser.isOnline
-            ? '● Online'
-            : '○ Offline';
+
+        profileStatus.textContent =
+            currentUser.isOnline
+                ? '● Online'
+                : '○ Offline';
     }
 
+    const darkToggle =
+        document.getElementById('darkModeToggle');
+
     if (currentUser.darkMode) {
+
         document.body.classList.add('dark-mode');
+
+        darkToggle?.classList.add('active');
+
     } else {
+
         document.body.classList.remove('dark-mode');
+
+        darkToggle?.classList.remove('active');
     }
 
     updateProfileView();
 }
 
 // ==============================
-// SIGN UP
+// AUTH FORMS
 // ==============================
-const signupForm = document.getElementById('signupFormElement');
+document
+    .getElementById('showSignin')
+    ?.addEventListener('click', (e) => {
 
-if (signupForm) {
-    signupForm.addEventListener('submit', async (e) => {
         e.preventDefault();
 
-        const name = document.getElementById('signupName').value.trim();
-        const username = document.getElementById('signupUsername').value.trim();
-        const email = document.getElementById('signupGmail').value.trim();
-        const password = document.getElementById('signupPassword').value;
-        const confirmPassword = document.getElementById('signupConfirmPassword').value;
+        document
+            .getElementById('signupForm')
+            .classList.add('hidden');
 
-        if (!name || !username || !email || !password) {
+        document
+            .getElementById('signinForm')
+            .classList.remove('hidden');
+    });
+
+document
+    .getElementById('showSignup')
+    ?.addEventListener('click', (e) => {
+
+        e.preventDefault();
+
+        document
+            .getElementById('signinForm')
+            .classList.add('hidden');
+
+        document
+            .getElementById('signupForm')
+            .classList.remove('hidden');
+    });
+
+// ==============================
+// SIGNUP
+// ==============================
+const signupForm =
+    document.getElementById('signupFormElement');
+
+if (signupForm) {
+
+    signupForm.addEventListener('submit', async (e) => {
+
+        e.preventDefault();
+
+        const name =
+            document.getElementById('signupName').value.trim();
+
+        const username =
+            document.getElementById('signupUsername').value.trim();
+
+        const email =
+            document.getElementById('signupGmail').value.trim();
+
+        const password =
+            document.getElementById('signupPassword').value;
+
+        const confirmPassword =
+            document.getElementById('signupConfirmPassword').value;
+
+        if (
+            !name ||
+            !username ||
+            !email ||
+            !password
+        ) {
             alert('Please fill all fields!');
             return;
         }
@@ -191,13 +283,9 @@ if (signupForm) {
             return;
         }
 
-        if (password.length < 6) {
-            alert('Password must be at least 6 characters!');
-            return;
-        }
-
         try {
-            const userCredential = await createUserWithEmailAndPassword(
+
+            await createUserWithEmailAndPassword(
                 auth,
                 email,
                 password
@@ -210,10 +298,16 @@ if (signupForm) {
 
             alert('Account created successfully!');
 
-            document.getElementById('signupForm').classList.add('hidden');
-            document.getElementById('signinForm').classList.remove('hidden');
+            document
+                .getElementById('signupForm')
+                .classList.add('hidden');
+
+            document
+                .getElementById('signinForm')
+                .classList.remove('hidden');
 
         } catch (error) {
+
             console.error(error);
             alert(error.message);
         }
@@ -223,26 +317,32 @@ if (signupForm) {
 // ==============================
 // LOGIN
 // ==============================
-const signinForm = document.getElementById('signinFormElement');
+const signinForm =
+    document.getElementById('signinFormElement');
 
 if (signinForm) {
+
     signinForm.addEventListener('submit', async (e) => {
+
         e.preventDefault();
 
-        const email = document.getElementById('signinUsername').value.trim();
-        const password = document.getElementById('signinPassword').value;
+        const email =
+            document.getElementById('signinUsername').value.trim();
+
+        const password =
+            document.getElementById('signinPassword').value;
 
         try {
-            const userCredential = await signInWithEmailAndPassword(
-                auth,
-                email,
-                password
-            );
 
-            const user = userCredential.user;
+            const userCredential =
+                await signInWithEmailAndPassword(
+                    auth,
+                    email,
+                    password
+                );
 
-            currentUser.name = user.email;
-            currentUser.username = user.email;
+            currentUser.name = userCredential.user.email;
+            currentUser.username = userCredential.user.email;
 
             saveCurrentState();
 
@@ -251,6 +351,7 @@ if (signinForm) {
             alert('Login successful!');
 
         } catch (error) {
+
             console.error(error);
             alert(error.message);
         }
@@ -261,19 +362,32 @@ if (signinForm) {
 // LOGOUT
 // ==============================
 async function logout() {
+
     try {
+
         await signOut(auth);
 
         clearSession();
 
-        document.getElementById('dashboard').style.display = 'none';
+        document.getElementById('dashboard')
+            .style.display = 'none';
 
-        document.querySelector('.auth-container')
+        document
+            .querySelector('.auth-container')
             ?.classList.remove('hidden');
+
+        document
+            .getElementById('signinForm')
+            .classList.add('hidden');
+
+        document
+            .getElementById('signupForm')
+            .classList.remove('hidden');
 
         alert('Logged out successfully!');
 
     } catch (error) {
+
         console.error(error);
         alert(error.message);
     }
@@ -285,327 +399,81 @@ window.logout = logout;
 // AUTH STATE
 // ==============================
 onAuthStateChanged(auth, (user) => {
+
     if (user) {
-        console.log('User logged in:', user.email);
+
+        console.log('Logged in:', user.email);
+
     } else {
-        console.log('No user logged in');
+
+        console.log('No user');
     }
 });
 
 // ==============================
-// SEND MESSAGE
-// ==============================
-async function sendMessage() {
-    const input = document.getElementById('messageInput');
-
-    if (!input) return;
-
-    const messageText = input.value.trim();
-
-    if (messageText === '') return;
-
-    try {
-        await addDoc(collection(db, 'messages'), {
-            text: messageText,
-            sender: currentUser.name,
-            createdAt: serverTimestamp()
-        });
-
-        input.value = '';
-
-    } catch (error) {
-        console.error(error);
-        alert('Failed to send message');
-    }
-}
-
-window.sendMessage = sendMessage;
-
-// ==============================
-// LOAD REALTIME MESSAGES
-// ==============================
-const messagesQuery = query(
-    collection(db, 'messages'),
-    orderBy('createdAt', 'asc')
-);
-
-onSnapshot(messagesQuery, (snapshot) => {
-    const messagesContainer = document.querySelector('.chat-messages');
-
-    if (!messagesContainer) return;
-
-    messagesContainer.innerHTML = '';
-
-    snapshot.forEach((doc) => {
-        const data = doc.data();
-
-        const type = data.sender === currentUser.name
-            ? 'sent'
-            : 'received';
-
-        addMessageToUI(data.text, type);
-    });
-});
-
-// ==============================
-// MESSAGE UI
-// ==============================
-function addMessageToUI(text, type) {
-    const messagesContainer = document.querySelector('.chat-messages');
-
-    if (!messagesContainer) return;
-
-    const messageDiv = document.createElement('div');
-    messageDiv.classList.add('message', type);
-
-    const textSpan = document.createElement('span');
-    textSpan.textContent = text;
-
-    const timeSpan = document.createElement('span');
-    timeSpan.classList.add('timestamp');
-
-    timeSpan.textContent = new Date().toLocaleTimeString([], {
-        hour: '2-digit',
-        minute: '2-digit'
-    });
-
-    messageDiv.appendChild(textSpan);
-    messageDiv.appendChild(timeSpan);
-
-    messagesContainer.appendChild(messageDiv);
-
-    messagesContainer.scrollTop = messagesContainer.scrollHeight;
-}
-
-// ==============================
-// ENTER KEY
-// ==============================
-function handleKeyPress(event) {
-    if (event.key === 'Enter') {
-        sendMessage();
-    }
-}
-
-window.handleKeyPress = handleKeyPress;
-
-// ==============================
-// DARK MODE
-// ==============================
-function toggleDarkMode() {
-    document.body.classList.toggle('dark-mode');
-
-    currentUser.darkMode = document.body.classList.contains('dark-mode');
-
-    saveCurrentState();
-}
-
-window.toggleDarkMode = toggleDarkMode;
-
-// ==============================
-// PROFILE VIEW
-// ==============================
-function updateProfileView() {
-    const profileName = document.getElementById('profileName');
-    const profileAvatar = document.getElementById('profileAvatar');
-    const profileBio = document.getElementById('profileBio');
-
-    if (profileName) {
-        profileName.textContent = currentUser.name;
-    }
-
-    if (profileAvatar) {
-        profileAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
-
-        if (currentUser.profilePic) {
-            profileAvatar.style.backgroundImage = currentUser.profilePic;
-            profileAvatar.style.backgroundSize = 'cover';
-            profileAvatar.style.backgroundPosition = 'center';
-        }
-    }
-
-    if (profileBio) {
-        profileBio.textContent = currentUser.bio;
-    }
-}
-
-// ==============================
-// IMAGE UPLOAD
-// ==============================
-const imageInput = document.getElementById('imageInput');
-
-if (imageInput) {
-    imageInput.addEventListener('change', (e) => {
-        const file = e.target.files[0];
-
-        if (!file) return;
-
-        const reader = new FileReader();
-
-        reader.onload = function(event) {
-            const messagesContainer = document.querySelector('.chat-messages');
-
-            const messageDiv = document.createElement('div');
-            messageDiv.classList.add('message', 'sent');
-
-            const img = document.createElement('img');
-            img.src = event.target.result;
-            img.style.maxWidth = '200px';
-            img.style.borderRadius = '12px';
-
-            messageDiv.appendChild(img);
-
-            messagesContainer.appendChild(messageDiv);
-        };
-
-        reader.readAsDataURL(file);
-    });
-}
-
-// ==============================
-// AUDIO RECORDING
-// ==============================
-async function startRecording() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({
-            audio: true
-        });
-
-        mediaRecorder = new MediaRecorder(stream);
-
-        audioChunks = [];
-
-        mediaRecorder.ondataavailable = (event) => {
-            audioChunks.push(event.data);
-        };
-
-        mediaRecorder.onstop = () => {
-            const audioBlob = new Blob(audioChunks, {
-                type: 'audio/mp3'
-            });
-
-            const audioUrl = URL.createObjectURL(audioBlob);
-
-            console.log(audioUrl);
-
-            alert('Voice message recorded!');
-        };
-
-        mediaRecorder.start();
-
-        isRecording = true;
-
-    } catch (error) {
-        console.error(error);
-        alert('Microphone permission denied');
-    }
-}
-
-function stopRecording() {
-    if (mediaRecorder && isRecording) {
-        mediaRecorder.stop();
-        isRecording = false;
-    }
-}
-
-window.startRecording = startRecording;
-window.stopRecording = stopRecording;
-
-// ==============================
-// AUDIO & VIDEO CALL
-// ==============================
-function startAudioCall() {
-    alert('📞 Audio Call Started');
-}
-
-function startVideoCall() {
-    alert('📹 Video Call Started');
-}
-
-window.startAudioCall = startAudioCall;
-window.startVideoCall = startVideoCall;
-
-// ==============================
-// INIT
-// ==============================
-document.addEventListener('DOMContentLoaded', () => {
-    loadSavedState();
-    loadChatMessages();
-    applyUserSettings();
-});
-
-// ==============================
-// INIT
-// ==============================
-document.addEventListener('DOMContentLoaded', () => {
-
-    loadSavedState();
-    loadChatMessages();
-    applyUserSettings();
-
-    // START SPLASH SCREEN
-    const splash = document.getElementById('splashScreen');
-
-    if (splash) {
-
-        // Tap anywhere on splash
-        splash.addEventListener('click', () => {
-            startApp();
-        });
-
-    }
-
-});
-
-// ==============================
-// DROPDOWN MENU
+// MENU
 // ==============================
 function toggleMenu() {
-    const dropdown = document.getElementById('mainDropdown');
 
-    if (
-        dropdown.style.display === 'none' ||
-        dropdown.style.display === ''
-    ) {
-        dropdown.style.display = 'block';
-    } else {
-        dropdown.style.display = 'none';
-    }
+    const dropdown =
+        document.getElementById('mainDropdown');
+
+    if (!dropdown) return;
+
+    dropdown.classList.toggle('hidden');
 }
-
-document.addEventListener('click', function(e) {
-
-    const menuHeader = document.querySelector('.menu-header');
-
-    if (menuHeader && !menuHeader.contains(e.target)) {
-
-        document.getElementById('mainDropdown').style.display = 'none';
-
-        document.getElementById('settingsDropdown').style.display = 'none';
-    }
-});
 
 function showSettings() {
 
-    document.getElementById('mainDropdown').style.display = 'none';
+    document
+        .getElementById('mainDropdown')
+        ?.classList.add('hidden');
 
-    document.getElementById('settingsDropdown').style.display = 'block';
+    document
+        .getElementById('settingsDropdown')
+        ?.classList.remove('hidden');
 }
 
 function showMainMenu() {
 
-    document.getElementById('settingsDropdown').style.display = 'none';
+    document
+        .getElementById('settingsDropdown')
+        ?.classList.add('hidden');
 
-    document.getElementById('mainDropdown').style.display = 'block';
+    document
+        .getElementById('mainDropdown')
+        ?.classList.remove('hidden');
 }
 
+document.addEventListener('click', (e) => {
+
+    const menuHeader =
+        document.querySelector('.menu-header');
+
+    if (
+        menuHeader &&
+        !menuHeader.contains(e.target)
+    ) {
+
+        document
+            .getElementById('mainDropdown')
+            ?.classList.add('hidden');
+
+        document
+            .getElementById('settingsDropdown')
+            ?.classList.add('hidden');
+    }
+});
+
 // ==============================
-// ONLINE STATUS
+// STATUS
 // ==============================
 function toggleStatus() {
 
-    const toggle = document.getElementById('statusToggle');
+    const toggle =
+        document.getElementById('statusToggle');
 
-    toggle.classList.toggle('active');
+    toggle?.classList.toggle('active');
 
     currentUser.isOnline =
         toggle.classList.contains('active');
@@ -625,6 +493,24 @@ function toggleStatus() {
 }
 
 // ==============================
+// DARK MODE
+// ==============================
+function toggleDarkMode() {
+
+    document.body.classList.toggle('dark-mode');
+
+    const toggle =
+        document.getElementById('darkModeToggle');
+
+    toggle?.classList.toggle('active');
+
+    currentUser.darkMode =
+        document.body.classList.contains('dark-mode');
+
+    saveCurrentState();
+}
+
+// ==============================
 // RIGHT SIDEBAR
 // ==============================
 function toggleRightSidebar() {
@@ -632,7 +518,46 @@ function toggleRightSidebar() {
     const sidebar =
         document.getElementById('rightSidebar');
 
-    sidebar.classList.toggle('active');
+    sidebar?.classList.toggle('active');
+}
+
+// ==============================
+// PROFILE VIEW
+// ==============================
+function updateProfileView() {
+
+    const profileName =
+        document.getElementById('profileName');
+
+    const profileAvatar =
+        document.getElementById('profileAvatar');
+
+    const profileBio =
+        document.getElementById('profileBio');
+
+    if (profileName) {
+        profileName.textContent = currentUser.name;
+    }
+
+    if (profileAvatar) {
+
+        profileAvatar.textContent =
+            currentUser.name.charAt(0).toUpperCase();
+
+        if (currentUser.profilePic) {
+
+            profileAvatar.style.backgroundImage =
+                currentUser.profilePic;
+
+            profileAvatar.style.backgroundSize = 'cover';
+
+            profileAvatar.style.backgroundPosition = 'center';
+        }
+    }
+
+    if (profileBio) {
+        profileBio.textContent = currentUser.bio;
+    }
 }
 
 // ==============================
@@ -640,35 +565,41 @@ function toggleRightSidebar() {
 // ==============================
 function openSidebarEditProfile() {
 
-    document.getElementById('mainDropdown')
+    document
+        .getElementById('mainDropdown')
+        ?.classList.add('hidden');
+
+    document
+        .getElementById('settingsDropdown')
+        ?.classList.add('hidden');
+
+    document
+        .getElementById('rightSidebar')
+        ?.classList.add('active');
+
+    document
+        .getElementById('sidebarViewMode')
         .style.display = 'none';
 
-    document.getElementById('settingsDropdown')
-        .style.display = 'none';
-
-    const sidebar =
-        document.getElementById('rightSidebar');
-
-    sidebar.classList.add('active');
-
-    document.getElementById('sidebarViewMode')
-        .style.display = 'none';
-
-    document.getElementById('sidebarEditMode')
+    document
+        .getElementById('sidebarEditMode')
         .style.display = 'block';
 
-    document.getElementById('editSidebarName')
+    document
+        .getElementById('editSidebarName')
         .value = currentUser.name;
 
-    document.getElementById('editSidebarUsername')
+    document
+        .getElementById('editSidebarUsername')
         .value = currentUser.username;
 
-    document.getElementById('editSidebarBio')
+    document
+        .getElementById('editSidebarBio')
         .value = currentUser.bio;
 }
 
 // ==============================
-// PREVIEW PROFILE PICTURE
+// PREVIEW PROFILE PIC
 // ==============================
 function previewProfilePic(event) {
 
@@ -719,18 +650,17 @@ function saveSidebarProfile() {
     if (!newName || !newUsername) {
 
         alert('Name and Username are required!');
-
         return;
     }
 
     currentUser.name = newName;
-
     currentUser.username = newUsername;
-
     currentUser.bio = newBio;
 
-    if (profilePic && profilePic !== 'none') {
-
+    if (
+        profilePic &&
+        profilePic !== 'none'
+    ) {
         currentUser.profilePic = profilePic;
     }
 
@@ -744,19 +674,20 @@ function saveSidebarProfile() {
 }
 
 // ==============================
-// CLOSE EDIT MODE
+// CLOSE SIDEBAR EDIT
 // ==============================
 function closeSidebarEditMode() {
 
-    document.getElementById('sidebarEditMode')
+    document
+        .getElementById('sidebarEditMode')
         .style.display = 'none';
 
-    document.getElementById('sidebarViewMode')
+    document
+        .getElementById('sidebarViewMode')
         .style.display = 'block';
 
-    updateProfileView();
-
-    document.getElementById('rightSidebar')
+    document
+        .getElementById('rightSidebar')
         .classList.remove('active');
 }
 
@@ -782,60 +713,342 @@ function switchUser(userName) {
 }
 
 // ==============================
-// EMOJI FUNCTIONS
+// SEND MESSAGE
 // ==============================
+async function sendMessage() {
+
+    const input =
+        document.getElementById('messageInput');
+
+    if (!input) return;
+
+    const messageText = input.value.trim();
+
+    if (messageText === '') return;
+
+    try {
+
+        await addDoc(collection(db, 'messages'), {
+
+            text: messageText,
+            sender: currentUser.name,
+            createdAt: serverTimestamp()
+        });
+
+        input.value = '';
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert('Failed to send message');
+    }
+}
+
+// ==============================
+// LOAD MESSAGES
+// ==============================
+const messagesQuery = query(
+    collection(db, 'messages'),
+    orderBy('createdAt', 'asc')
+);
+
+onSnapshot(messagesQuery, (snapshot) => {
+
+    const messagesContainer =
+        document.querySelector('.chat-messages');
+
+    if (!messagesContainer) return;
+
+    messagesContainer.innerHTML = '';
+
+    snapshot.forEach((doc) => {
+
+        const data = doc.data();
+
+        const type =
+            data.sender === currentUser.name
+                ? 'sent'
+                : 'received';
+
+        addMessageToUI(data.text, type);
+    });
+});
+
+// ==============================
+// MESSAGE UI
+// ==============================
+function addMessageToUI(text, type) {
+
+    const messagesContainer =
+        document.querySelector('.chat-messages');
+
+    if (!messagesContainer) return;
+
+    const messageDiv =
+        document.createElement('div');
+
+    messageDiv.classList.add('message', type);
+
+    const textSpan =
+        document.createElement('span');
+
+    textSpan.textContent = text;
+
+    const timeSpan =
+        document.createElement('span');
+
+    timeSpan.classList.add('timestamp');
+
+    timeSpan.textContent =
+        new Date().toLocaleTimeString([], {
+            hour: '2-digit',
+            minute: '2-digit'
+        });
+
+    messageDiv.appendChild(textSpan);
+    messageDiv.appendChild(timeSpan);
+
+    messagesContainer.appendChild(messageDiv);
+
+    messagesContainer.scrollTop =
+        messagesContainer.scrollHeight;
+}
+
+// ==============================
+// ENTER KEY
+// ==============================
+function handleKeyPress(event) {
+
+    if (event.key === 'Enter') {
+        sendMessage();
+    }
+}
+
+// ==============================
+// IMAGE UPLOAD
+// ==============================
+const imageInput =
+    document.getElementById('imageInput');
+
+if (imageInput) {
+
+    imageInput.addEventListener('change', (e) => {
+
+        const file = e.target.files[0];
+
+        if (!file) return;
+
+        const reader = new FileReader();
+
+        reader.onload = function(event) {
+
+            const messagesContainer =
+                document.querySelector('.chat-messages');
+
+            const messageDiv =
+                document.createElement('div');
+
+            messageDiv.classList.add('message', 'sent');
+
+            const img =
+                document.createElement('img');
+
+            img.src = event.target.result;
+
+            img.style.maxWidth = '200px';
+
+            img.style.borderRadius = '12px';
+
+            messageDiv.appendChild(img);
+
+            messagesContainer.appendChild(messageDiv);
+        };
+
+        reader.readAsDataURL(file);
+    });
+}
+
+// ==============================
+// EMOJI PICKER
+// ==============================
+const emojis = [
+    '😀','😂','😍','😎','😭',
+    '🔥','❤️','👍','🎉','😅'
+];
+
 function addEmoji() {
 
     const picker =
         document.getElementById('emojiPicker');
 
-    picker.classList.toggle('hidden');
+    picker?.classList.toggle('hidden');
+
+    const grid =
+        document.getElementById('emojiGrid');
+
+    if (!grid || grid.innerHTML !== '') return;
+
+    emojis.forEach((emoji) => {
+
+        const span =
+            document.createElement('span');
+
+        span.textContent = emoji;
+
+        span.classList.add('emoji-item');
+
+        span.onclick = () => {
+
+            document.getElementById('messageInput')
+                .value += emoji;
+        };
+
+        grid.appendChild(span);
+    });
 }
 
 function showEmojiTab(tab) {
 
-    document.getElementById('emojiTab')
-        .classList.remove('active');
+    document
+        .getElementById('emojiTab')
+        ?.classList.remove('active');
 
-    document.getElementById('gifTab')
-        .classList.remove('active');
+    document
+        .getElementById('gifTab')
+        ?.classList.remove('active');
 
     if (tab === 'emoji') {
 
-        document.getElementById('emojiTab')
-            .classList.add('active');
+        document
+            .getElementById('emojiTab')
+            ?.classList.add('active');
 
     } else {
 
-        document.getElementById('gifTab')
-            .classList.add('active');
+        document
+            .getElementById('gifTab')
+            ?.classList.add('active');
     }
 }
 
 function searchEmojiGif(value) {
-
     console.log('Searching:', value);
 }
 
-window.startApp = startApp;
+// ==============================
+// AUDIO RECORDING
+// ==============================
+async function startRecording() {
+
+    try {
+
+        const stream =
+            await navigator.mediaDevices.getUserMedia({
+                audio: true
+            });
+
+        mediaRecorder =
+            new MediaRecorder(stream);
+
+        audioChunks = [];
+
+        mediaRecorder.ondataavailable = (event) => {
+            audioChunks.push(event.data);
+        };
+
+        mediaRecorder.onstop = () => {
+
+            const audioBlob =
+                new Blob(audioChunks, {
+                    type: 'audio/mp3'
+                });
+
+            const audioUrl =
+                URL.createObjectURL(audioBlob);
+
+            console.log(audioUrl);
+
+            alert('Voice message recorded!');
+        };
+
+        mediaRecorder.start();
+
+        isRecording = true;
+
+    } catch (error) {
+
+        console.error(error);
+
+        alert('Microphone permission denied');
+    }
+}
+
+function stopRecording() {
+
+    if (
+        mediaRecorder &&
+        isRecording
+    ) {
+
+        mediaRecorder.stop();
+
+        isRecording = false;
+    }
+}
+
+// ==============================
+// CALLS
+// ==============================
+function startAudioCall() {
+    alert('📞 Audio Call Started');
+}
+
+function startVideoCall() {
+    alert('📹 Video Call Started');
+}
+
+// ==============================
+// INIT
+// ==============================
+document.addEventListener('DOMContentLoaded', () => {
+
+    loadSavedState();
+    loadChatMessages();
+    applyUserSettings();
+
+    const splash =
+        document.getElementById('splashScreen');
+
+    if (splash) {
+
+        splash.addEventListener('click', () => {
+            startApp();
+        });
+    }
+});
+
+// ==============================
+// WINDOW FUNCTIONS
+// ==============================
 window.toggleMenu = toggleMenu;
 window.showSettings = showSettings;
 window.showMainMenu = showMainMenu;
 window.toggleStatus = toggleStatus;
 window.toggleDarkMode = toggleDarkMode;
-window.openSidebarEditProfile = openSidebarEditProfile;
 window.toggleRightSidebar = toggleRightSidebar;
-window.startAudioCall = startAudioCall;
-window.startVideoCall = startVideoCall;
-window.sendMessage = sendMessage;
-window.handleKeyPress = handleKeyPress;
-window.addEmoji = addEmoji;
-window.startRecording = startRecording;
-window.stopRecording = stopRecording;
-window.switchUser = switchUser;
-window.searchEmojiGif = searchEmojiGif;
-window.showEmojiTab = showEmojiTab;
+window.openSidebarEditProfile = openSidebarEditProfile;
 window.previewProfilePic = previewProfilePic;
 window.saveSidebarProfile = saveSidebarProfile;
 window.closeSidebarEditMode = closeSidebarEditMode;
+window.switchUser = switchUser;
+window.sendMessage = sendMessage;
+window.handleKeyPress = handleKeyPress;
+window.addEmoji = addEmoji;
+window.showEmojiTab = showEmojiTab;
+window.searchEmojiGif = searchEmojiGif;
+window.startRecording = startRecording;
+window.stopRecording = stopRecording;
+window.startAudioCall = startAudioCall;
+window.startVideoCall = startVideoCall;
 window.logout = logout;
