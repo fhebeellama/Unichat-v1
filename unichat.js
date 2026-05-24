@@ -757,59 +757,73 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==============================
-// EDIT PROFILE LOGIC
+// EDIT PROFILE LOGIC - FIXED
 // ==============================
 
 function openSidebarEditProfile() {
     const sidebar = document.getElementById('rightSidebar');
+    const viewMode = document.getElementById('sidebarViewMode');
+    const editMode = document.getElementById('sidebarEditMode');
+
+    // Open sidebar if not open
     if (sidebar) {
         sidebar.classList.add('active');
     }
 
+    // Switch to Edit Mode
+    if (viewMode) viewMode.style.display = 'none';
+    if (editMode) editMode.style.display = 'block';
+
     // Populate fields with current user data
-    const nameInput = document.getElementById('editName');
-    const usernameInput = document.getElementById('editUsername');
-    const bioInput = document.getElementById('editBio');
-    const previewImg = document.getElementById('profilePreviewImg');
+    const nameInput = document.getElementById('editSidebarName');
+    const usernameInput = document.getElementById('editSidebarUsername');
+    const bioInput = document.getElementById('editSidebarBio');
+    const editAvatar = document.getElementById('editProfileAvatar');
 
     if (nameInput) nameInput.value = currentUser.name;
     if (usernameInput) usernameInput.value = currentUser.username;
     if (bioInput) bioInput.value = currentUser.bio;
 
-    // Handle Profile Picture Preview
-    if (previewImg) {
+    // Update avatar preview
+    if (editAvatar) {
         if (currentUser.profilePic) {
-            previewImg.src = currentUser.profilePic;
-            previewImg.style.display = 'block';
+            editAvatar.style.backgroundImage = `url(${currentUser.profilePic})`;
+            editAvatar.style.backgroundSize = 'cover';
+            editAvatar.textContent = '';
         } else {
-            previewImg.style.display = 'none';
+            editAvatar.style.backgroundImage = 'none';
+            editAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
         }
     }
 }
 
-function previewProfilePic(input) {
-    if (input.files && input.files[0]) {
+function previewProfilePic(event) {
+    const file = event.target.files[0];
+    if (file) {
         const reader = new FileReader();
         
         reader.onload = function(e) {
-            const previewImg = document.getElementById('profilePreviewImg');
-            // Update the preview image instantly
-            if (previewImg) {
-                previewImg.src = e.target.result;
-                previewImg.style.display = 'block';
+            const editAvatar = document.getElementById('editProfileAvatar');
+            
+            // Update preview instantly
+            if (editAvatar) {
+                editAvatar.style.backgroundImage = `url(${e.target.result})`;
+                editAvatar.style.backgroundSize = 'cover';
+                editAvatar.textContent = '';
             }
-            // Temporarily update current user object (will save on submit)
+            
+            // Temporarily save to current user object
             currentUser.profilePic = e.target.result;
         }
 
-        reader.readAsDataURL(input.files[0]);
+        reader.readAsDataURL(file);
     }
 }
 
 function saveSidebarProfile() {
-    const nameInput = document.getElementById('editName');
-    const usernameInput = document.getElementById('editUsername');
-    const bioInput = document.getElementById('editBio');
+    const nameInput = document.getElementById('editSidebarName');
+    const usernameInput = document.getElementById('editSidebarUsername');
+    const bioInput = document.getElementById('editSidebarBio');
 
     // Validation
     if (nameInput && nameInput.value.trim() === "") {
@@ -825,7 +839,7 @@ function saveSidebarProfile() {
     // Save to Local Storage
     saveCurrentState();
 
-    // Update UI (Top Bar)
+    // Update UI (Header)
     applyUserSettings();
 
     // Close Sidebar
@@ -836,12 +850,17 @@ function saveSidebarProfile() {
 
 function closeSidebarEditMode() {
     const sidebar = document.getElementById('rightSidebar');
+    const viewMode = document.getElementById('sidebarViewMode');
+    const editMode = document.getElementById('sidebarEditMode');
+
+    // Close sidebar
     if (sidebar) {
         sidebar.classList.remove('active');
     }
-    
-    // Optional: Reset file input if needed, but we usually keep the data 
-    // in the global variable for next time.
+
+    // Switch back to View Mode for next time
+    if (editMode) editMode.style.display = 'none';
+    if (viewMode) viewMode.style.display = 'block';
 }
 
 function switchUser() {
