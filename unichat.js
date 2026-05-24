@@ -32,6 +32,48 @@ const db = getFirestore(app);
 // ==============================
 // GLOBAL VARIABLES
 // ==============================
+// ==============================
+// LOAD USERS
+// ==============================
+function loadUsers() {
+    const usersRef = collection(db, "users");
+
+    onSnapshot(usersRef, (snapshot) => {
+        const userList = document.querySelector(".user-list");
+
+        // Clear old list
+        userList.innerHTML = "";
+
+        snapshot.forEach((docSnap) => {
+            const user = docSnap.data();
+
+            // Don't show yourself
+            if (user.email === currentUser.email) return;
+
+            const userDiv = document.createElement("div");
+            userDiv.className = "user";
+
+            userDiv.onclick = () => {
+                switchUser(user);
+            };
+
+            userDiv.innerHTML = `
+                <div class="avatar">
+                    ${user.name.charAt(0).toUpperCase()}
+                    <span class="status-indicator online"></span>
+                </div>
+
+                <div class="user-info">
+                    <h4>${user.name}</h4>
+                    <p>${user.email}</p>
+                </div>
+            `;
+
+            userList.appendChild(userDiv);
+        });
+    });
+}
+
 let currentUser = {
     name: "User",
     email: "",
@@ -43,7 +85,7 @@ let currentUser = {
 
 let mediaRecorder;
 let audioChunks = [];
-let activeChatUser = "Bot";
+let activeChatUser = null;
 let blockedUsers = [];
 
 // ==============================
@@ -90,6 +132,7 @@ function showDashboardLoggedIn() {
     document.querySelector(".auth-container").classList.add("hidden");
     document.getElementById("dashboard").style.display = "flex";
     applyUserSettings();
+    loadUsers();
 }
 
 function applyUserSettings() {
@@ -273,49 +316,124 @@ window.toggleMyStatus = toggleMyStatus;
 // ==============================
 // CHAT FUNCTIONS
 // ==============================
-function switchUser(userName) {
-    activeChatUser = userName;
-    
-    document.getElementById("chatHeaderAvatar").textContent = userName.charAt(0).toUpperCase();
-    document.getElementById("chatHeaderName").textContent = userName;
-    document.getElementById("chatHeaderStatus").className = "status-indicator online";
-    document.getElementById("chatHeaderStatusText").textContent = "Active Now";
-    
-    document.getElementById("profileAvatar").textContent = userName.charAt(0).toUpperCase();
-    document.getElementById("profileName").textContent = userName;
-    document.getElementById("profileStatus").textContent = "● Online";
-    document.getElementById("profileStatusIndicator").className = "status-indicator online";
-    
-    const blockBtn = document.getElementById("blockBtn");
-    if (blockedUsers.includes(userName)) {
-        blockBtn.innerHTML = '<i class="fas fa-check"></i> Unblock User';
-        blockBtn.style.background = "#27ae60";
-    } else {
-        blockBtn.innerHTML = '<i class="fas fa-ban"></i> Block User';
-        blockBtn.style.background = "#e74c3c";
-    }
-    
-    document.getElementById("chatMessages").innerHTML = '<p class="no-messages">You are now chatting with ' + userName + '</p>';
+// ==============================
+// SWITCH USER
+// ==============================
+function switchUser(user) {
+
+    activeChatUser = user;
+
+    document.querySelector(".chat-header h3").textContent = user.name;
+
+    document.getElementById("profileName").textContent = user.name;
+
+    document.getElementById("profileBio").textContent =
+        user.bio || "Hey there! I am using Unichat.";
+
+    document.getElementById("chatMessages").innerHTML = "";
+
+    loadMessages();
 }
+
 window.switchUser = switchUser;
+
+// ==============================
+// CHAT ROOM ID
+// ==============================
+function getChatRoomId(user1, user2) {
+
+    return [user1.email, user2.email]
+        .sort()
+        .join("_");
+}
 
 // ==============================
 // SEND MESSAGE
 // ==============================
-function sendMessage() {
+f// ==============================
+// SEND MESSAGE
+// ==============================
+async function sendMessage() {
+
     const input = document.getElementById("messageInput");
+
     const text = input.value.trim();
-    
-    if (!text) return;
-    if (blockedUsers.includes(activeChatUser)) {
-        alert("You have blocked this user!");
-        return;
+
+    if (!text || !activeChatUser) return;
+
+    const roomId = getChatRoomId(
+        currentUser,
+        activeChatUser
+    );
+
+    try {
+
+        await addDoc(
+            collection(db, "chats", roomId, "messages"),
+            {
+                text: text,
+                sender: currentUser.email,
+                receiver: activeChatUser.email,
+                createdAt: serverTimestamp()
+            }
+        );
+
+        input.value = "";
+
+    } catch (error) {
+
+        console.error(error);
+
     }
-    
-    addMessageToUI(text, "sent");
-    input.value = "";
 }
+
 window.sendMessage = sendMessage;
+
+// ==============================
+// LOAD MESSAGES
+// ==============================
+function loadMessages() {
+
+    const roomId = getChatRoomId(
+        currentUser,
+        activeChatUser
+    );
+
+    const messagesRef = query(
+        collection(db, "chats", roomId, "messages"),
+        orderBy("createdAt", "asc")
+    );
+
+    onSnapshot(messagesRef, (snapshot) => {
+
+        const chatBox =
+            document.getElementById("chatMessages");
+
+        chatBox.innerHTML = "";
+
+        snapshot.forEach((doc) => {
+
+            const msg = doc.data();
+
+            const div = document.createElement("div");
+
+            div.className =
+                msg.sender === currentUser.email
+                    ? "message sent"
+                    : "message received";
+
+            div.innerHTML = `
+                <div class="message-content">
+                    ${msg.text}
+                </div>
+            `;
+
+            chatBox.appendChild(div);
+        });
+
+        chatBox.scrollTop = chatBox.scrollHeight;
+    });
+}
 
 function addMessageToUI(text, type) {
     const container = document.getElementById("chatMessages");
