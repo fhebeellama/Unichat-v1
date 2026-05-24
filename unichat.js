@@ -49,6 +49,7 @@ let activeChatUser = null;
 let blockedUsers = [];
 let unsubscribeUsers = null;
 let unsubscribeMessages = null;
+let splashClicked = false; // ✅ Prevent double click
 
 // ==============================
 // LOCAL STORAGE
@@ -80,14 +81,28 @@ function clearSession() {
 }
 
 // ==============================
-// SPLASH SCREEN
+// ✅ FIXED SPLASH SCREEN
 // ==============================
 function startApp() {
+    if (splashClicked) return; // Only run once
+    splashClicked = true;
+
     const splash = document.getElementById("splashScreen");
     if (splash) {
         splash.style.display = "none";
     }
+
+    // If user already logged in, go straight to dashboard
+    if (loadSavedState()) {
+        showDashboardLoggedIn();
+    } else {
+        // Show login form by default
+        document.querySelector(".auth-container").classList.remove("hidden");
+        document.getElementById("signinForm").classList.remove("hidden");
+    }
 }
+
+// ✅ Make function available to HTML onclick
 window.startApp = startApp;
 
 // ==============================
@@ -304,18 +319,16 @@ async function logout() {
 window.logout = logout;
 
 // ==============================
-// MENU - FIXED
+// ✅ FIXED MENU
 // ==============================
 function toggleMenu() {
     const menu = document.getElementById("mainDropdown");
     const settings = document.getElementById("settingsDropdown");
     
-    // Close settings if open
     if (!settings.classList.contains("hidden")) {
         settings.classList.add("hidden");
     }
     
-    // Toggle main menu
     menu.classList.toggle("hidden");
 }
 window.toggleMenu = toggleMenu;
@@ -403,7 +416,7 @@ function getChatRoomId(user1, user2) {
 }
 
 // ==============================
-// SEND MESSAGE - FIXED
+// ✅ FIXED SEND MESSAGE
 // ==============================
 async function sendMessage() {
     const input = document.getElementById("messageInput");
@@ -433,12 +446,11 @@ async function sendMessage() {
 window.sendMessage = sendMessage;
 
 // ==============================
-// LOAD MESSAGES - FIXED
+// ✅ FIXED LOAD MESSAGES
 // ==============================
 function loadMessages() {
     if (!activeChatUser) return;
 
-    // Unsubscribe from previous chat if exists
     if (unsubscribeMessages) unsubscribeMessages();
 
     const roomId = getChatRoomId(currentUser, activeChatUser);
@@ -525,7 +537,6 @@ function addEmoji(emoji) {
 window.addEmoji = addEmoji;
 window.showEmojiTab = showEmojiTab;
 
-// Initialize emojis
 showEmojiTab("emoji");
 
 // ==============================
@@ -606,7 +617,6 @@ function toggleRightSidebar() {
     const sidebar = document.getElementById("rightSidebar");
     sidebar.classList.toggle("active");
     
-    // Load current user's profile if opening edit mode
     if (sidebar.classList.contains("active")) {
         if (activeChatUser && activeChatUser.email === currentUser.email) {
             loadMyProfileToSidebar();
@@ -631,9 +641,7 @@ function loadMyProfileToSidebar() {
     profileAvatar.style.backgroundImage = currentUser.profilePic ? `url(${currentUser.profilePic})` : 'none';
     profileAvatar.style.backgroundSize = "cover";
     
-    // Hide block button when viewing own profile
     document.getElementById("blockBtn").classList.add("hidden");
-    // Show edit button
     document.getElementById("editProfileBtn").classList.remove("hidden");
 }
 
@@ -649,9 +657,7 @@ function loadUserProfileToSidebar() {
     profileAvatar.style.backgroundImage = activeChatUser.profilePic ? `url(${activeChatUser.profilePic})` : 'none';
     profileAvatar.style.backgroundSize = "cover";
     
-    // Show block button when viewing other user
     document.getElementById("blockBtn").classList.remove("hidden");
-    // Hide edit button
     document.getElementById("editProfileBtn").classList.add("hidden");
 }
 
@@ -772,23 +778,20 @@ function createGroup() {
 window.createGroup = createGroup;
 
 // ==============================
-// INITIAL CHECK
+// ✅ INITIAL CHECK
 // ==============================
 window.addEventListener("DOMContentLoaded", () => {
-    if (loadSavedState()) {
-        showDashboardLoggedIn();
-    }
+    // Don't auto start — wait for splash click
 });
 
 // ==============================
-// CLICK OUTSIDE MENU CLOSE - FIXED
+// ✅ CLICK OUTSIDE MENU CLOSE
 // ==============================
 document.addEventListener("click", (e) => {
     const menu = document.getElementById("mainDropdown");
     const settings = document.getElementById("settingsDropdown");
     const menuBtn = document.querySelector(".menu-header");
     
-    // Close menu when clicking outside
     if (!menuBtn.contains(e.target) && !menu.contains(e.target)) {
         menu.classList.add("hidden");
         settings.classList.add("hidden");
