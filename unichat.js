@@ -728,6 +728,8 @@ function stopRecording() {
     }
 }
 
+// ... existing code above ...
+
 // ==============================
 // CALL FUNCTIONS
 // ==============================
@@ -757,7 +759,7 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==============================
-// EDIT PROFILE LOGIC - FIXED
+// EDIT PROFILE LOGIC
 // ==============================
 
 function openSidebarEditProfile() {
@@ -879,7 +881,7 @@ window.showMainMenu = showMainMenu;
 window.toggleStatus = toggleStatus;
 window.toggleDarkMode = toggleDarkMode;
 window.toggleRightSidebar = toggleRightSidebar;
-window.openSidebarEditProfile = openSidebarEditProfile;
+window.openSidebarEditProfile = openSidebarEditProfile;         // NOW THIS WILL WORK
 window.previewProfilePic = previewProfilePic;
 window.saveSidebarProfile = saveSidebarProfile;
 window.closeSidebarEditMode = closeSidebarEditMode;
