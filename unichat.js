@@ -25,12 +25,12 @@ import {
 // FIREBASE CONFIG
 // ==============================
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_DOMAIN.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_BUCKET.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDdVR0x17NB3ma4ulyL-Jdv3rukfNijwgs",
+  authDomain: "unichat-v1.firebaseapp.com",
+  projectId: "unichat-v1",
+  storageBucket: "unichat-v1.firebasestorage.app",
+  messagingSenderId: "1014572806433",
+  appId: "1:1014572806433:web:d496a60f3011993217ce60"
 };
 
 // ==============================
@@ -413,80 +413,65 @@ onAuthStateChanged(auth, (user) => {
 // ==============================
 // MENU
 // ==============================
+// ==============================
+// MENU FUNCTIONS
+// ==============================
+
 function toggleMenu() {
+    const mainDropdown = document.getElementById('mainDropdown');
+    const settingsDropdown = document.getElementById('settingsDropdown');
 
-    const dropdown =
-        document.getElementById('mainDropdown');
+    if (!mainDropdown) return;
 
-    if (!dropdown) return;
+    // Close settings menu first
+    settingsDropdown.style.display = 'none';
 
-    dropdown.classList.toggle('hidden');
+    if (mainDropdown.style.display === 'block') {
+        mainDropdown.style.display = 'none';
+    } else {
+        mainDropdown.style.display = 'block';
+    }
 }
 
 function showSettings() {
-
-    document
-        .getElementById('mainDropdown')
-        ?.classList.add('hidden');
-
-    document
-        .getElementById('settingsDropdown')
-        ?.classList.remove('hidden');
+    document.getElementById('mainDropdown').style.display = 'none';
+    document.getElementById('settingsDropdown').style.display = 'block';
 }
 
 function showMainMenu() {
-
-    document
-        .getElementById('settingsDropdown')
-        ?.classList.add('hidden');
-
-    document
-        .getElementById('mainDropdown')
-        ?.classList.remove('hidden');
+    document.getElementById('settingsDropdown').style.display = 'none';
+    document.getElementById('mainDropdown').style.display = 'block';
 }
 
+// Close dropdown if clicked outside
 document.addEventListener('click', (e) => {
+    const menuHeader = document.querySelector('.menu-header');
 
-    const menuHeader =
-        document.querySelector('.menu-header');
-
-    if (
-        menuHeader &&
-        !menuHeader.contains(e.target)
-    ) {
-
-        document
-            .getElementById('mainDropdown')
-            ?.classList.add('hidden');
-
-        document
-            .getElementById('settingsDropdown')
-            ?.classList.add('hidden');
+    if (menuHeader && !menuHeader.contains(e.target)) {
+        document.getElementById('mainDropdown').style.display = 'none';
+        document.getElementById('settingsDropdown').style.display = 'none';
     }
 });
 
 // ==============================
-// STATUS
+// STATUS TOGGLE
 // ==============================
+
 function toggleStatus() {
+    const toggle = document.getElementById('statusToggle');
 
-    const toggle =
-        document.getElementById('statusToggle');
+    if (!toggle) return;
 
-    toggle?.classList.toggle('active');
+    toggle.classList.toggle('active');
 
-    currentUser.isOnline =
-        toggle.classList.contains('active');
+    currentUser.isOnline = toggle.classList.contains('active');
 
-    const profileStatus =
-        document.querySelector('.profile-status');
+    const profileStatus = document.querySelector('.profile-status');
 
     if (profileStatus) {
-
-        profileStatus.textContent =
-            currentUser.isOnline
-                ? '● Online'
-                : '○ Offline';
+        profileStatus.textContent = currentUser.isOnline
+            ? '● Online'
+            : '○ Offline';
     }
 
     saveCurrentState();
@@ -495,14 +480,15 @@ function toggleStatus() {
 // ==============================
 // DARK MODE
 // ==============================
-function toggleDarkMode() {
 
+function toggleDarkMode() {
     document.body.classList.toggle('dark-mode');
 
-    const toggle =
-        document.getElementById('darkModeToggle');
+    const toggle = document.getElementById('darkModeToggle');
 
-    toggle?.classList.toggle('active');
+    if (toggle) {
+        toggle.classList.toggle('active');
+    }
 
     currentUser.darkMode =
         document.body.classList.contains('dark-mode');
@@ -513,212 +499,80 @@ function toggleDarkMode() {
 // ==============================
 // RIGHT SIDEBAR
 // ==============================
+
 function toggleRightSidebar() {
+    const sidebar = document.getElementById('rightSidebar');
 
-    const sidebar =
-        document.getElementById('rightSidebar');
-
-    sidebar?.classList.toggle('active');
-}
-
-// ==============================
-// PROFILE VIEW
-// ==============================
-function updateProfileView() {
-
-    const profileName =
-        document.getElementById('profileName');
-
-    const profileAvatar =
-        document.getElementById('profileAvatar');
-
-    const profileBio =
-        document.getElementById('profileBio');
-
-    if (profileName) {
-        profileName.textContent = currentUser.name;
-    }
-
-    if (profileAvatar) {
-
-        profileAvatar.textContent =
-            currentUser.name.charAt(0).toUpperCase();
-
-        if (currentUser.profilePic) {
-
-            profileAvatar.style.backgroundImage =
-                currentUser.profilePic;
-
-            profileAvatar.style.backgroundSize = 'cover';
-
-            profileAvatar.style.backgroundPosition = 'center';
-        }
-    }
-
-    if (profileBio) {
-        profileBio.textContent = currentUser.bio;
+    if (sidebar) {
+        sidebar.classList.toggle('active');
     }
 }
 
 // ==============================
-// OPEN EDIT PROFILE
+// EMOJI PICKER
 // ==============================
-function openSidebarEditProfile() {
 
-    document
-        .getElementById('mainDropdown')
-        ?.classList.add('hidden');
+const emojis = [
+    '😀', '😂', '😍', '😎', '😭',
+    '🔥', '❤️', '👍', '🎉', '😅',
+    '🥳', '🤖', '😡', '😴', '💯',
+    '✨', '😇', '🙌', '😜', '🤩'
+];
 
-    document
-        .getElementById('settingsDropdown')
-        ?.classList.add('hidden');
+function addEmoji() {
+    const picker = document.getElementById('emojiPicker');
 
-    document
-        .getElementById('rightSidebar')
-        ?.classList.add('active');
+    if (!picker) return;
 
-    document
-        .getElementById('sidebarViewMode')
-        .style.display = 'none';
+    picker.classList.toggle('active');
 
-    document
-        .getElementById('sidebarEditMode')
-        .style.display = 'block';
+    const grid = document.getElementById('emojiGrid');
 
-    document
-        .getElementById('editSidebarName')
-        .value = currentUser.name;
+    if (!grid) return;
 
-    document
-        .getElementById('editSidebarUsername')
-        .value = currentUser.username;
+    // Prevent duplicate emojis
+    if (grid.innerHTML !== '') return;
 
-    document
-        .getElementById('editSidebarBio')
-        .value = currentUser.bio;
+    emojis.forEach((emoji) => {
+        const span = document.createElement('span');
+
+        span.textContent = emoji;
+        span.classList.add('emoji-item');
+
+        span.addEventListener('click', () => {
+            const input = document.getElementById('messageInput');
+
+            input.value += emoji;
+            input.focus();
+        });
+
+        grid.appendChild(span);
+    });
 }
 
-// ==============================
-// PREVIEW PROFILE PIC
-// ==============================
-function previewProfilePic(event) {
+function showEmojiTab(tab) {
+    const emojiTab = document.getElementById('emojiTab');
+    const gifTab = document.getElementById('gifTab');
 
-    const file = event.target.files[0];
-
-    if (!file) return;
-
-    const reader = new FileReader();
-
-    reader.onload = function(e) {
-
-        const avatar =
-            document.getElementById('editProfileAvatar');
-
-        avatar.textContent = '';
-
-        avatar.style.backgroundImage =
-            `url(${e.target.result})`;
-
-        avatar.style.backgroundSize = 'cover';
-
-        avatar.style.backgroundPosition = 'center';
-    };
-
-    reader.readAsDataURL(file);
+    if (tab === 'emoji') {
+        emojiTab.classList.add('active');
+        gifTab.classList.remove('active');
+    } else {
+        gifTab.classList.add('active');
+        emojiTab.classList.remove('active');
+    }
 }
 
-// ==============================
-// SAVE PROFILE
-// ==============================
-function saveSidebarProfile() {
-
-    const newName =
-        document.getElementById('editSidebarName').value;
-
-    const newUsername =
-        document.getElementById('editSidebarUsername').value;
-
-    const newBio =
-        document.getElementById('editSidebarBio').value;
-
-    const editAvatar =
-        document.getElementById('editProfileAvatar');
-
-    const profilePic =
-        editAvatar.style.backgroundImage;
-
-    if (!newName || !newUsername) {
-
-        alert('Name and Username are required!');
-        return;
-    }
-
-    currentUser.name = newName;
-    currentUser.username = newUsername;
-    currentUser.bio = newBio;
-
-    if (
-        profilePic &&
-        profilePic !== 'none'
-    ) {
-        currentUser.profilePic = profilePic;
-    }
-
-    saveCurrentState();
-
-    applyUserSettings();
-
-    alert('Profile updated successfully!');
-
-    closeSidebarEditMode();
-}
-
-// ==============================
-// CLOSE SIDEBAR EDIT
-// ==============================
-function closeSidebarEditMode() {
-
-    document
-        .getElementById('sidebarEditMode')
-        .style.display = 'none';
-
-    document
-        .getElementById('sidebarViewMode')
-        .style.display = 'block';
-
-    document
-        .getElementById('rightSidebar')
-        .classList.remove('active');
-}
-
-// ==============================
-// SWITCH USER
-// ==============================
-function switchUser(userName) {
-
-    const headerName =
-        document.querySelector('.chat-header h3');
-
-    const avatar =
-        document.querySelector('.chat-header .avatar');
-
-    if (headerName) {
-        headerName.textContent = userName;
-    }
-
-    if (avatar) {
-        avatar.textContent =
-            userName.charAt(0).toUpperCase();
-    }
+function searchEmojiGif(value) {
+    console.log("Searching:", value);
 }
 
 // ==============================
 // SEND MESSAGE
 // ==============================
-async function sendMessage() {
 
-    const input =
-        document.getElementById('messageInput');
+async function sendMessage() {
+    const input = document.getElementById('messageInput');
 
     if (!input) return;
 
@@ -727,9 +581,7 @@ async function sendMessage() {
     if (messageText === '') return;
 
     try {
-
         await addDoc(collection(db, 'messages'), {
-
             text: messageText,
             sender: currentUser.name,
             createdAt: serverTimestamp()
@@ -738,23 +590,66 @@ async function sendMessage() {
         input.value = '';
 
     } catch (error) {
-
         console.error(error);
-
         alert('Failed to send message');
     }
 }
 
 // ==============================
-// LOAD MESSAGES
+// HANDLE ENTER KEY
 // ==============================
+
+function handleKeyPress(event) {
+    if (event.key === 'Enter') {
+        event.preventDefault();
+        sendMessage();
+    }
+}
+
+// ==============================
+// MESSAGE UI
+// ==============================
+
+function addMessageToUI(text, type) {
+    const messagesContainer =
+        document.querySelector('.chat-messages');
+
+    if (!messagesContainer) return;
+
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', type);
+
+    const textSpan = document.createElement('span');
+    textSpan.textContent = text;
+
+    const timeSpan = document.createElement('span');
+    timeSpan.classList.add('timestamp');
+
+    timeSpan.textContent = new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
+
+    messageDiv.appendChild(textSpan);
+    messageDiv.appendChild(timeSpan);
+
+    messagesContainer.appendChild(messageDiv);
+
+    // Auto scroll
+    messagesContainer.scrollTop =
+        messagesContainer.scrollHeight;
+}
+
+// ==============================
+// LOAD MESSAGES REALTIME
+// ==============================
+
 const messagesQuery = query(
     collection(db, 'messages'),
     orderBy('createdAt', 'asc')
 );
 
 onSnapshot(messagesQuery, (snapshot) => {
-
     const messagesContainer =
         document.querySelector('.chat-messages');
 
@@ -763,7 +658,6 @@ onSnapshot(messagesQuery, (snapshot) => {
     messagesContainer.innerHTML = '';
 
     snapshot.forEach((doc) => {
-
         const data = doc.data();
 
         const type =
@@ -776,180 +670,17 @@ onSnapshot(messagesQuery, (snapshot) => {
 });
 
 // ==============================
-// MESSAGE UI
-// ==============================
-function addMessageToUI(text, type) {
-
-    const messagesContainer =
-        document.querySelector('.chat-messages');
-
-    if (!messagesContainer) return;
-
-    const messageDiv =
-        document.createElement('div');
-
-    messageDiv.classList.add('message', type);
-
-    const textSpan =
-        document.createElement('span');
-
-    textSpan.textContent = text;
-
-    const timeSpan =
-        document.createElement('span');
-
-    timeSpan.classList.add('timestamp');
-
-    timeSpan.textContent =
-        new Date().toLocaleTimeString([], {
-            hour: '2-digit',
-            minute: '2-digit'
-        });
-
-    messageDiv.appendChild(textSpan);
-    messageDiv.appendChild(timeSpan);
-
-    messagesContainer.appendChild(messageDiv);
-
-    messagesContainer.scrollTop =
-        messagesContainer.scrollHeight;
-}
-
-// ==============================
-// ENTER KEY
-// ==============================
-function handleKeyPress(event) {
-
-    if (event.key === 'Enter') {
-        sendMessage();
-    }
-}
-
-// ==============================
-// IMAGE UPLOAD
-// ==============================
-const imageInput =
-    document.getElementById('imageInput');
-
-if (imageInput) {
-
-    imageInput.addEventListener('change', (e) => {
-
-        const file = e.target.files[0];
-
-        if (!file) return;
-
-        const reader = new FileReader();
-
-        reader.onload = function(event) {
-
-            const messagesContainer =
-                document.querySelector('.chat-messages');
-
-            const messageDiv =
-                document.createElement('div');
-
-            messageDiv.classList.add('message', 'sent');
-
-            const img =
-                document.createElement('img');
-
-            img.src = event.target.result;
-
-            img.style.maxWidth = '200px';
-
-            img.style.borderRadius = '12px';
-
-            messageDiv.appendChild(img);
-
-            messagesContainer.appendChild(messageDiv);
-        };
-
-        reader.readAsDataURL(file);
-    });
-}
-
-// ==============================
-// EMOJI PICKER
-// ==============================
-const emojis = [
-    '😀','😂','😍','😎','😭',
-    '🔥','❤️','👍','🎉','😅'
-];
-
-function addEmoji() {
-
-    const picker =
-        document.getElementById('emojiPicker');
-
-    picker?.classList.toggle('hidden');
-
-    const grid =
-        document.getElementById('emojiGrid');
-
-    if (!grid || grid.innerHTML !== '') return;
-
-    emojis.forEach((emoji) => {
-
-        const span =
-            document.createElement('span');
-
-        span.textContent = emoji;
-
-        span.classList.add('emoji-item');
-
-        span.onclick = () => {
-
-            document.getElementById('messageInput')
-                .value += emoji;
-        };
-
-        grid.appendChild(span);
-    });
-}
-
-function showEmojiTab(tab) {
-
-    document
-        .getElementById('emojiTab')
-        ?.classList.remove('active');
-
-    document
-        .getElementById('gifTab')
-        ?.classList.remove('active');
-
-    if (tab === 'emoji') {
-
-        document
-            .getElementById('emojiTab')
-            ?.classList.add('active');
-
-    } else {
-
-        document
-            .getElementById('gifTab')
-            ?.classList.add('active');
-    }
-}
-
-function searchEmojiGif(value) {
-    console.log('Searching:', value);
-}
-
-// ==============================
 // AUDIO RECORDING
 // ==============================
+
 async function startRecording() {
-
     try {
-
         const stream =
             await navigator.mediaDevices.getUserMedia({
                 audio: true
             });
 
-        mediaRecorder =
-            new MediaRecorder(stream);
+        mediaRecorder = new MediaRecorder(stream);
 
         audioChunks = [];
 
@@ -958,18 +689,26 @@ async function startRecording() {
         };
 
         mediaRecorder.onstop = () => {
-
-            const audioBlob =
-                new Blob(audioChunks, {
-                    type: 'audio/mp3'
-                });
+            const audioBlob = new Blob(audioChunks, {
+                type: 'audio/webm'
+            });
 
             const audioUrl =
                 URL.createObjectURL(audioBlob);
 
-            console.log(audioUrl);
+            const audio = document.createElement('audio');
+            audio.controls = true;
+            audio.src = audioUrl;
 
-            alert('Voice message recorded!');
+            const messageDiv =
+                document.createElement('div');
+
+            messageDiv.classList.add('message', 'sent');
+            messageDiv.appendChild(audio);
+
+            document
+                .querySelector('.chat-messages')
+                .appendChild(messageDiv);
         };
 
         mediaRecorder.start();
@@ -977,29 +716,22 @@ async function startRecording() {
         isRecording = true;
 
     } catch (error) {
-
         console.error(error);
-
         alert('Microphone permission denied');
     }
 }
 
 function stopRecording() {
-
-    if (
-        mediaRecorder &&
-        isRecording
-    ) {
-
+    if (mediaRecorder && isRecording) {
         mediaRecorder.stop();
-
         isRecording = false;
     }
 }
 
 // ==============================
-// CALLS
+// CALL FUNCTIONS
 // ==============================
+
 function startAudioCall() {
     alert('📞 Audio Call Started');
 }
@@ -1009,28 +741,25 @@ function startVideoCall() {
 }
 
 // ==============================
-// INIT
+// INITIALIZE APP
 // ==============================
-document.addEventListener('DOMContentLoaded', () => {
 
+document.addEventListener('DOMContentLoaded', () => {
     loadSavedState();
     loadChatMessages();
     applyUserSettings();
 
-    const splash =
-        document.getElementById('splashScreen');
+    const splash = document.getElementById('splashScreen');
 
     if (splash) {
-
-        splash.addEventListener('click', () => {
-            startApp();
-        });
+        splash.addEventListener('click', startApp);
     }
 });
 
 // ==============================
-// WINDOW FUNCTIONS
+// GLOBAL WINDOW FUNCTIONS
 // ==============================
+
 window.toggleMenu = toggleMenu;
 window.showSettings = showSettings;
 window.showMainMenu = showMainMenu;
