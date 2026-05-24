@@ -581,8 +581,33 @@ window.startVideoCall = startVideoCall;
 function toggleRightSidebar() {
     const sidebar = document.getElementById("rightSidebar");
     sidebar.classList.toggle("active");
+    
+    // Load current user's profile if opening edit mode
+    if (sidebar.classList.contains("active")) {
+        loadMyProfileToSidebar();
+    } else {
+        closeSidebarEditMode();
+    }
 }
 window.toggleRightSidebar = toggleRightSidebar;
+
+function loadMyProfileToSidebar() {
+    document.getElementById("sidebarViewMode").classList.remove("hidden");
+    document.getElementById("sidebarEditMode").classList.add("hidden");
+
+    document.getElementById("profileName").textContent = currentUser.name;
+    document.getElementById("profileBio").textContent = currentUser.bio;
+
+    const profileAvatar = document.getElementById("profileAvatar");
+    profileAvatar.textContent = !currentUser.profilePic ? currentUser.name.charAt(0).toUpperCase() : '';
+    profileAvatar.style.backgroundImage = currentUser.profilePic ? `url(${currentUser.profilePic})` : 'none';
+    profileAvatar.style.backgroundSize = "cover";
+    
+    // Hide block button when viewing own profile
+    document.getElementById("blockBtn").classList.add("hidden");
+    // Show edit button
+    document.getElementById("editProfileBtn").classList.remove("hidden");
+}
 
 function openSidebarEditProfile() {
     document.getElementById("sidebarViewMode").classList.add("hidden");
@@ -607,7 +632,7 @@ function previewProfilePic(event) {
     const reader = new FileReader();
     reader.onload = function(e) {
         const avatar = document.getElementById("editProfileAvatar");
-        avatar.style.backgroundImage = `url(${e.target.result})`;
+        avatar.style.backgroundImage = `url("${e.target.result}")`;
         avatar.style.backgroundSize = "cover";
         avatar.textContent = "";
     };
@@ -646,7 +671,7 @@ async function updateProfileInFirestore() {
         saveCurrentState();
         applyUserSettings();
         closeSidebarEditMode();
-        alert("Profile updated!");
+        alert("Profile updated successfully!");
     } catch (e) {
         alert("Error updating profile");
     }
