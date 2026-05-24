@@ -29,12 +29,12 @@ import {
 // FIREBASE CONFIG
 // =====================================
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "YOUR_PROJECT.firebaseapp.com",
-    projectId: "YOUR_PROJECT_ID",
-    storageBucket: "YOUR_PROJECT.appspot.com",
-    messagingSenderId: "YOUR_SENDER_ID",
-    appId: "YOUR_APP_ID"
+  apiKey: "AIzaSyDdVR0x17NB3ma4ulyL-Jdv3rukfNijwgs",
+  authDomain: "unichat-v1.firebaseapp.com",
+  projectId: "unichat-v1",
+  storageBucket: "unichat-v1.firebasestorage.app",
+  messagingSenderId: "1014572806433",
+  appId: "1:1014572806433:web:d496a60f3011993217ce60"
 };
 
 // =====================================
