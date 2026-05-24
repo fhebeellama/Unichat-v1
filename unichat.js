@@ -757,6 +757,100 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 // ==============================
+// EDIT PROFILE LOGIC
+// ==============================
+
+function openSidebarEditProfile() {
+    const sidebar = document.getElementById('rightSidebar');
+    if (sidebar) {
+        sidebar.classList.add('active');
+    }
+
+    // Populate fields with current user data
+    const nameInput = document.getElementById('editName');
+    const usernameInput = document.getElementById('editUsername');
+    const bioInput = document.getElementById('editBio');
+    const previewImg = document.getElementById('profilePreviewImg');
+
+    if (nameInput) nameInput.value = currentUser.name;
+    if (usernameInput) usernameInput.value = currentUser.username;
+    if (bioInput) bioInput.value = currentUser.bio;
+
+    // Handle Profile Picture Preview
+    if (previewImg) {
+        if (currentUser.profilePic) {
+            previewImg.src = currentUser.profilePic;
+            previewImg.style.display = 'block';
+        } else {
+            previewImg.style.display = 'none';
+        }
+    }
+}
+
+function previewProfilePic(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        
+        reader.onload = function(e) {
+            const previewImg = document.getElementById('profilePreviewImg');
+            // Update the preview image instantly
+            if (previewImg) {
+                previewImg.src = e.target.result;
+                previewImg.style.display = 'block';
+            }
+            // Temporarily update current user object (will save on submit)
+            currentUser.profilePic = e.target.result;
+        }
+
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+
+function saveSidebarProfile() {
+    const nameInput = document.getElementById('editName');
+    const usernameInput = document.getElementById('editUsername');
+    const bioInput = document.getElementById('editBio');
+
+    // Validation
+    if (nameInput && nameInput.value.trim() === "") {
+        alert("Name cannot be empty!");
+        return;
+    }
+
+    // Update Global User Object
+    if (nameInput) currentUser.name = nameInput.value;
+    if (usernameInput) currentUser.username = usernameInput.value;
+    if (bioInput) currentUser.bio = bioInput.value;
+
+    // Save to Local Storage
+    saveCurrentState();
+
+    // Update UI (Top Bar)
+    applyUserSettings();
+
+    // Close Sidebar
+    closeSidebarEditMode();
+    
+    alert('Profile updated successfully!');
+}
+
+function closeSidebarEditMode() {
+    const sidebar = document.getElementById('rightSidebar');
+    if (sidebar) {
+        sidebar.classList.remove('active');
+    }
+    
+    // Optional: Reset file input if needed, but we usually keep the data 
+    // in the global variable for next time.
+}
+
+function switchUser() {
+    if (confirm("Are you sure you want to switch accounts? This will log you out.")) {
+        logout();
+    }
+}
+
+// ==============================
 // GLOBAL WINDOW FUNCTIONS
 // ==============================
 
