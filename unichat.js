@@ -8,11 +8,11 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
     getFirestore, collection, addDoc, onSnapshot,
-    query, orderBy, serverTimestamp, doc, setDoc, updateDoc, getDoc
+    query, orderBy, serverTimestamp, doc, setDoc, updateDoc, getDoc, where
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ==============================
-// FIREBASE CONFIG - REPLACE WITH YOUR OWN!
+// FIREBASE CONFIG
 // ==============================
 const firebaseConfig = {
   apiKey: "AIzaSyDdVR0x17NB3ma4ulyL-Jdv3rukfNijwgs",
@@ -34,6 +34,7 @@ const db = getFirestore(app);
 // GLOBAL VARIABLES
 // ==============================
 let currentUser = {
+    uid: "",
     name: "User",
     email: "",
     bio: "Hey there! I am using Unichat.",
@@ -46,6 +47,7 @@ let mediaRecorder;
 let audioChunks = [];
 let activeChatUser = null;
 let blockedUsers = [];
+let unsubscribeUsers = null;
 
 // ==============================
 // LOCAL STORAGE
@@ -65,6 +67,15 @@ function loadSavedState() {
 
 function clearSession() {
     localStorage.removeItem("unichatUser");
+    currentUser = {
+        uid: "",
+        name: "User",
+        email: "",
+        bio: "Hey there! I am using Unichat.",
+        isOnline: true,
+        darkMode: false,
+        profilePic: ""
+    };
 }
 
 // ==============================
@@ -74,12 +85,6 @@ function startApp() {
     const splash = document.getElementById("splashScreen");
     if (splash) {
         splash.style.display = "none";
-    }
-    
-    if (loadSavedState()) {
-        showDashboardLoggedIn();
-    } else {
-        document.querySelector(".auth-container").classList.remove("hidden");
     }
 }
 window.startApp = startApp;
@@ -91,17 +96,21 @@ function showDashboardLoggedIn() {
     document.querySelector(".auth-container").classList.add("hidden");
     document.getElementById("dashboard").style.display = "flex";
     applyUserSettings();
+    if (unsubscribeUsers) unsubscribeUsers();
     loadUsers();
+    updateUserStatus(true);
 }
 
 function applyUserSettings() {
-    document.getElementById("menuUserName").textContent = currentUser.name;
+    document.getElementById("menuUserName").textContent = currentUser.name || "User";
     const menuAvatar = document.getElementById("menuAvatar");
-    menuAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
+    menuAvatar.textContent = (currentUser.name || "U").charAt(0).toUpperCase();
     
     if (currentUser.profilePic) {
         menuAvatar.style.backgroundImage = `url(${currentUser.profilePic})`;
         menuAvatar.style.backgroundSize = "cover";
+    } else {
+        menuAvatar.style.backgroundImage = "";
     }
     
     const statusEl = document.getElementById("menuUserStatus");
@@ -124,22 +133,34 @@ function applyUserSettings() {
 }
 
 // ==============================
+// UPDATE USER STATUS IN FIRESTORE
+// ==============================
+async function updateUserStatus(status) {
+    if (!currentUser.email) return;
+    try {
+        await updateDoc(doc(db, "users", currentUser.email), {
+            isOnline: status
+        });
+    } catch (e) {
+        console.log("Status update error:", e);
+    }
+}
+
+// ==============================
 // LOAD USERS
 // ==============================
 function loadUsers() {
     const usersRef = collection(db, "users");
 
-    onSnapshot(usersRef, (snapshot) => {
+    unsubscribeUsers = onSnapshot(usersRef, (snapshot) => {
         const userList = document.querySelector(".user-list");
         if (!userList) return;
 
-        // Clear old list
         userList.innerHTML = "";
 
         snapshot.forEach((docSnap) => {
             const user = docSnap.data();
 
-            // Don't show yourself
             if (user.email === currentUser.email) return;
 
             const userDiv = document.createElement("div");
@@ -150,9 +171,11 @@ function loadUsers() {
             };
 
             userDiv.innerHTML = `
-                <div class="avatar">
-                    ${user.name.charAt(0).toUpperCase()}
-                    <span class="status-indicator online"></span>
+                <div class="avatar-container">
+                    <div class="avatar" style="background-image: ${user.profilePic ? `url(${user.profilePic})` : 'none'}; background-size:cover;">
+                        ${!user.profilePic ? user.name.charAt(0).toUpperCase() : ''}
+                    </div>
+                    <span class="status-indicator ${user.isOnline ? 'online' : 'offline'}"></span>
                 </div>
                 <div class="user-info">
                     <h4>${user.name}</h4>
@@ -187,7 +210,7 @@ document.getElementById("signupFormElement").addEventListener("submit", async (e
     e.preventDefault();
     
     const name = document.getElementById("signupName").value.trim();
-    const email = document.getElementById("signupEmail").value.trim();
+    const email = document.getElementById("signupEmail").value.trim().toLowerCase();
     const password = document.getElementById("signupPassword").value;
     const confirmPassword = document.getElementById("signupConfirmPassword").value;
     
@@ -204,10 +227,12 @@ document.getElementById("signupFormElement").addEventListener("submit", async (e
     try {
         const userCredential = await createUserWithEmailAndPassword(auth, email, password);
         
+        currentUser.uid = userCredential.user.uid;
         currentUser.name = name;
         currentUser.email = email;
         
         await setDoc(doc(db, "users", email), {
+            uid: userCredential.user.uid,
             name: name,
             email: email,
             bio: currentUser.bio,
@@ -216,7 +241,7 @@ document.getElementById("signupFormElement").addEventListener("submit", async (e
         });
         
         saveCurrentState();
-        alert("Account created!");
+        alert("Account created successfully!");
         showDashboardLoggedIn();
         
     } catch (error) {
@@ -230,7 +255,7 @@ document.getElementById("signupFormElement").addEventListener("submit", async (e
 document.getElementById("signinFormElement").addEventListener("submit", async (e) => {
     e.preventDefault();
     
-    const email = document.getElementById("signinEmail").value.trim();
+    const email = document.getElementById("signinEmail").value.trim().toLowerCase();
     const password = document.getElementById("signinPassword").value;
     
     try {
@@ -239,10 +264,13 @@ document.getElementById("signinFormElement").addEventListener("submit", async (e
         const userDoc = await getDoc(doc(db, "users", email));
         if (userDoc.exists()) {
             const userData = userDoc.data();
+            currentUser.uid = userCredential.user.uid;
             currentUser.name = userData.name;
             currentUser.bio = userData.bio || currentUser.bio;
             currentUser.email = email;
             currentUser.isOnline = userData.isOnline;
+            currentUser.profilePic = userData.profilePic || "";
+            currentUser.darkMode = userData.darkMode || false;
         }
         
         saveCurrentState();
@@ -258,10 +286,15 @@ document.getElementById("signinFormElement").addEventListener("submit", async (e
 // ==============================
 async function logout() {
     try {
+        await updateUserStatus(false);
         await signOut(auth);
         clearSession();
         document.getElementById("dashboard").style.display = "none";
         document.querySelector(".auth-container").classList.remove("hidden");
+        document.getElementById("signinForm").classList.remove("hidden");
+        document.getElementById("signupForm").classList.add("hidden");
+        if (unsubscribeUsers) unsubscribeUsers();
+        activeChatUser = null;
     } catch (error) {
         alert(error.message);
     }
@@ -292,15 +325,20 @@ window.showMainMenu = showMainMenu;
 // ==============================
 // SETTINGS TOGGLES
 // ==============================
-function toggleDarkMode() {
+async function toggleDarkMode() {
     document.body.classList.toggle("dark-mode");
     currentUser.darkMode = document.body.classList.contains("dark-mode");
     document.getElementById("darkModeToggle").classList.toggle("active");
     saveCurrentState();
+    try {
+        await updateDoc(doc(db, "users", currentUser.email), {
+            darkMode: currentUser.darkMode
+        });
+    } catch (e) {}
 }
 window.toggleDarkMode = toggleDarkMode;
 
-function toggleMyStatus() {
+async function toggleMyStatus() {
     currentUser.isOnline = !currentUser.isOnline;
     document.getElementById("statusToggle").classList.toggle("active");
     
@@ -308,10 +346,13 @@ function toggleMyStatus() {
     statusEl.textContent = currentUser.isOnline ? "● Online" : "○ Offline";
     statusEl.style.color = currentUser.isOnline ? "#55efc4" : "#95a5a6";
     
-    document.getElementById("chatHeaderStatus").className = "status-indicator " + (currentUser.isOnline ? "online" : "offline");
-    document.getElementById("chatHeaderStatusText").textContent = currentUser.isOnline ? "Active Now" : "Offline";
+    if (activeChatUser) {
+        document.getElementById("chatHeaderStatus").className = "status-indicator " + (activeChatUser.isOnline ? "online" : "offline");
+        document.getElementById("chatHeaderStatusText").textContent = activeChatUser.isOnline ? "Active Now" : "Offline";
+    }
     
     saveCurrentState();
+    await updateUserStatus(currentUser.isOnline);
 }
 window.toggleMyStatus = toggleMyStatus;
 
@@ -324,6 +365,20 @@ function switchUser(user) {
     document.querySelector(".chat-header h3").textContent = user.name;
     document.getElementById("profileName").textContent = user.name;
     document.getElementById("profileBio").textContent = user.bio || "Hey there! I am using Unichat.";
+    
+    const chatAvatar = document.getElementById("chatHeaderAvatar");
+    chatAvatar.textContent = !user.profilePic ? user.name.charAt(0).toUpperCase() : '';
+    chatAvatar.style.backgroundImage = user.profilePic ? `url(${user.profilePic})` : 'none';
+    chatAvatar.style.backgroundSize = "cover";
+
+    const profileAvatar = document.getElementById("profileAvatar");
+    profileAvatar.textContent = !user.profilePic ? user.name.charAt(0).toUpperCase() : '';
+    profileAvatar.style.backgroundImage = user.profilePic ? `url(${user.profilePic})` : 'none';
+    profileAvatar.style.backgroundSize = "cover";
+
+    document.getElementById("chatHeaderStatus").className = "status-indicator " + (user.isOnline ? "online" : "offline");
+    document.getElementById("chatHeaderStatusText").textContent = user.isOnline ? "Active Now" : "Offline";
+
     document.getElementById("chatMessages").innerHTML = "";
 
     loadMessages();
@@ -389,7 +444,8 @@ function loadMessages() {
             div.className = msg.sender === currentUser.email ? "message sent" : "message received";
 
             div.innerHTML = `
-                <div class="message-content">${msg.text}</div>
+                <div class="message-content">${msg.text || ''}</div>
+                <span class="timestamp">${msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
             `;
 
             chatBox.appendChild(div);
@@ -433,7 +489,7 @@ function showEmojiTab(tab) {
             emojis.map(e => `<div class="emoji-item" onclick="addEmoji('${e}')">${e}</div>`).join('') +
             '</div>';
     } else {
-        content.innerHTML = '<p style="text-align:center;padding:20px;">GIF search coming soon!</p>';
+        content.innerHTML = '<p style="text-align:center;padding:20px;color:var(--text);">GIF search coming soon!</p>';
     }
 }
 
@@ -468,7 +524,7 @@ async function startRecording() {
             const container = document.getElementById("chatMessages");
             const div = document.createElement("div");
             div.className = "message sent";
-            div.innerHTML = `<audio controls src="${url}" style="width:200px;"></audio>`;
+            div.innerHTML = `<audio controls src="${url}" style="width:200px;">`;
             container.appendChild(div);
             container.scrollTop = container.scrollHeight;
         };
@@ -520,142 +576,155 @@ function startVideoCall() {
 window.startVideoCall = startVideoCall;
 
 // ==============================
-// RIGHT SIDEBAR (CONTINUED)
+// RIGHT SIDEBAR
 // ==============================
 function toggleRightSidebar() {
-    document.getElementById("rightSidebar").classList.toggle("active");
+    const sidebar = document.getElementById("rightSidebar");
+    sidebar.classList.toggle("active");
 }
 window.toggleRightSidebar = toggleRightSidebar;
 
 function openSidebarEditProfile() {
-    document.getElementById("rightSidebar").classList.add("active");
-    document.getElementById("sidebarViewMode").style.display = "none";
-    document.getElementById("sidebarEditMode").style.display = "block";
+    document.getElementById("sidebarViewMode").classList.add("hidden");
+    document.getElementById("sidebarEditMode").classList.remove("hidden");
+    
     document.getElementById("editSidebarName").value = currentUser.name;
     document.getElementById("editSidebarBio").value = currentUser.bio;
+    
+    const editAvatar = document.getElementById("editProfileAvatar");
+    editAvatar.textContent = !currentUser.profilePic ? currentUser.name.charAt(0).toUpperCase() : '';
+    editAvatar.style.backgroundImage = currentUser.profilePic ? `url(${currentUser.profilePic})` : 'none';
 }
 window.openSidebarEditProfile = openSidebarEditProfile;
 
 function closeSidebarEditMode() {
-    document.getElementById("sidebarViewMode").style.display = "block";
-    document.getElementById("sidebarEditMode").style.display = "none";
-    document.getElementById("rightSidebar").classList.remove("active");
+    document.getElementById("sidebarEditMode").classList.add("hidden");
+    document.getElementById("sidebarViewMode").classList.remove("hidden");
 }
 window.closeSidebarEditMode = closeSidebarEditMode;
 
-async function saveSidebarProfile() {
-    currentUser.name = document.getElementById("editSidebarName").value;
-    currentUser.bio = document.getElementById("editSidebarBio").value;
-
-    saveCurrentState();
-
-    await updateDoc(
-        doc(db, "users", currentUser.email),
-        {
-            name: currentUser.name,
-            bio: currentUser.bio
-        }
-    );
-
-    applyUserSettings();
-
-    alert("Profile updated!");
-
-    closeSidebarEditMode();
-}
-
 function previewProfilePic(event) {
-    if (event.target.files && event.target.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const avatar = document.getElementById("editProfileAvatar");
-            avatar.textContent = "";
-            avatar.style.backgroundImage = `url(${e.target.result})`;
-            avatar.style.backgroundSize = "cover";
-            currentUser.profilePic = e.target.result;
-        };
-        reader.readAsDataURL(event.target.files[0]);
-    }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+        const avatar = document.getElementById("editProfileAvatar");
+        avatar.style.backgroundImage = `url(${e.target.result})`;
+        avatar.style.backgroundSize = "cover";
+        avatar.textContent = "";
+    };
+    reader.readAsDataURL(event.target.files[0]);
 }
 window.previewProfilePic = previewProfilePic;
+
+async function saveSidebarProfile() {
+    const newName = document.getElementById("editSidebarName").value.trim();
+    const newBio = document.getElementById("editSidebarBio").value.trim();
+    const picInput = document.getElementById("editProfilePic");
+
+    if (newName) currentUser.name = newName;
+    if (newBio) currentUser.bio = newBio;
+
+    if (picInput.files && picInput.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            currentUser.profilePic = e.target.result;
+            updateProfileInFirestore();
+        };
+        reader.readAsDataURL(picInput.files[0]);
+    } else {
+        updateProfileInFirestore();
+    }
+}
+window.saveSidebarProfile = saveSidebarProfile;
+
+async function updateProfileInFirestore() {
+    try {
+        await updateDoc(doc(db, "users", currentUser.email), {
+            name: currentUser.name,
+            bio: currentUser.bio,
+            profilePic: currentUser.profilePic
+        });
+        saveCurrentState();
+        applyUserSettings();
+        closeSidebarEditMode();
+        alert("Profile updated!");
+    } catch (e) {
+        alert("Error updating profile");
+    }
+}
 
 // ==============================
 // BLOCK USER
 // ==============================
 function toggleBlockUser() {
-    const blockBtn = document.getElementById("blockBtn");
+    if (!activeChatUser) return;
     
-    if (blockedUsers.includes(activeChatUser.email)) {
-        blockedUsers = blockedUsers.filter(u => u !== activeChatUser);
-        blockBtn.innerHTML = '<i class="fas fa-ban"></i> Block User';
-        blockBtn.style.background = "#e74c3c";
-        alert("User unblocked!");
-    } else {
+    const index = blockedUsers.indexOf(activeChatUser.email);
+    if (index === -1) {
         blockedUsers.push(activeChatUser.email);
-        blockBtn.innerHTML = '<i class="fas fa-check"></i> Unblock User';
-        blockBtn.style.background = "#27ae60";
-        alert("User blocked!");
+        document.getElementById("blockBtn").innerHTML = '<i class="fas fa-ban"></i> Unblock User';
+        alert("User blocked");
+    } else {
+        blockedUsers.splice(index, 1);
+        document.getElementById("blockBtn").innerHTML = '<i class="fas fa-ban"></i> Block User';
+        alert("User unblocked");
     }
 }
 window.toggleBlockUser = toggleBlockUser;
 
 // ==============================
-// CREATE GROUP
+// SEARCH USERS
 // ==============================
-function createGroup() {
-    const groupName = prompt("Enter group name:");
-    if (groupName) {
-        const userList = document.getElementById("userList");
-        const newUser = document.createElement("div");
-        newUser.className = "user";
-        newUser.onclick = function() { switchUser(groupName); };
-        newUser.innerHTML = `
-            <div class="avatar-container">
-                <div class="avatar" style="background:#e74c3c;">${groupName.charAt(0)}</div>
-            </div>
-            <div class="user-info">
-                <h4>${groupName}</h4>
-                <p>Group Chat</p>
-            </div>
-        `;
-        userList.appendChild(newUser);
-        alert("Group created: " + groupName);
-    }
-}
-window.createGroup = createGroup;
-
-// ==============================
-// FILTER CHAT
-// ==============================
-function filterChat(searchText) {
+function filterChat(keyword) {
     const users = document.querySelectorAll(".user");
-    users.forEach(user => {
-        const name = user.querySelector("h4").textContent.toLowerCase();
-        if (name.includes(searchText.toLowerCase())) {
-            user.style.display = "flex";
+    keyword = keyword.toLowerCase();
+    
+    users.forEach(userEl => {
+        const name = userEl.querySelector("h4").textContent.toLowerCase();
+        const email = userEl.querySelector("p").textContent.toLowerCase();
+        
+        if (name.includes(keyword) || email.includes(keyword)) {
+            userEl.style.display = "flex";
         } else {
-            user.style.display = "none";
+            userEl.style.display = "none";
         }
     });
 }
 window.filterChat = filterChat;
 
 // ==============================
-// INIT
+// GROUP CHAT
 // ==============================
-document.addEventListener("DOMContentLoaded", () => {
-    applyUserSettings();
-    
-    document.addEventListener("click", (e) => {
-        const menu = document.querySelector(".menu-header");
-        if (menu && !menu.contains(e.target)) {
-            document.getElementById("mainDropdown").style.display = "none";
-            document.getElementById("settingsDropdown").style.display = "none";
-        }
-    });
-});
-onAuthStateChanged(auth, (user) => {
-    if (user) {
+function createGroup() {
+    alert("Create Group feature coming soon!");
+}
+window.createGroup = createGroup;
+
+// ==============================
+// INITIAL CHECK
+// ==============================
+window.addEventListener("DOMContentLoaded", () => {
+    if (loadSavedState()) {
         showDashboardLoggedIn();
+    }
+});
+
+// ==============================
+// CLICK OUTSIDE MENU CLOSE
+// ==============================
+document.addEventListener("click", (e) => {
+    const menu = document.getElementById("mainDropdown");
+    const settings = document.getElementById("settingsDropdown");
+    const menuBtn = document.querySelector(".menu-header");
+    
+    if (!menuBtn.contains(e.target)) {
+        menu.style.display = "none";
+        settings.style.display = "none";
+    }
+
+    const emojiPicker = document.getElementById("emojiPicker");
+    const emojiBtn = document.querySelector(".icon-btn[onclick='toggleEmojiPicker()']");
+    
+    if (emojiPicker.classList.contains("active") && !emojiPicker.contains(e.target) && !emojiBtn.contains(e.target)) {
+        emojiPicker.classList.remove("active");
     }
 });
