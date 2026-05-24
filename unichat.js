@@ -8,7 +8,7 @@ import {
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
 import {
     getFirestore, collection, addDoc, onSnapshot,
-    query, orderBy, serverTimestamp, doc, setDoc, updateDoc, getDoc, where
+    query, orderBy, serverTimestamp, doc, setDoc, updateDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 import {
     getStorage, ref, uploadBytes, getDownloadURL
@@ -92,14 +92,9 @@ function startApp() {
     splashClicked = true;
 
     const splash = document.getElementById("splashScreen");
-    if (splash) splash.style.display = "none";
+    if (splash) splash.classList.add("hidden");
 
-    if (loadSavedState()) {
-        showDashboardLoggedIn();
-    } else {
-        document.querySelector(".auth-container").classList.remove("hidden");
-        document.getElementById("signinForm").classList.remove("hidden");
-    }
+    // Auth state will handle showing correct screen
 }
 
 // ==============================
@@ -107,7 +102,7 @@ function startApp() {
 // ==============================
 function showDashboardLoggedIn() {
     document.querySelector(".auth-container").classList.add("hidden");
-    document.getElementById("dashboard").style.display = "flex";
+    document.getElementById("dashboard").classList.remove("hidden");
     applyUserSettings();
     if (unsubscribeUsers) unsubscribeUsers();
     loadUsers();
@@ -149,7 +144,7 @@ function applyUserSettings() {
 // UPDATE USER STATUS IN FIRESTORE
 // ==============================
 async function updateUserStatus(status) {
-    if (!currentUser.email) return;
+    if (!currentUser.email || !currentUser.uid) return;
     try {
         await updateDoc(doc(db, "users", currentUser.email), {
             isOnline: status
@@ -238,12 +233,12 @@ document.getElementById("signupFormElement").addEventListener("submit", async (e
             email: email,
             bio: currentUser.bio,
             isOnline: true,
-            profilePic: ""
+            profilePic: "",
+            darkMode: false
         });
         
         saveCurrentState();
         alert("Account created successfully!");
-        showDashboardLoggedIn();
         
     } catch (error) {
         alert(error.message);
@@ -260,25 +255,39 @@ document.getElementById("signinFormElement").addEventListener("submit", async (e
     const password = document.getElementById("signinPassword").value;
     
     try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        const userDoc = await getDoc(doc(db, "users", email);
-        
+        await signInWithEmailAndPassword(auth, email, password);
+    } catch (error) {
+        alert(error.message);
+    }
+});
+
+// ==============================
+// AUTH STATE OBSERVER ✅ MAIN FIX
+// ==============================
+onAuthStateChanged(auth, async (user) => {
+    if (user) {
+        const userDoc = await getDoc(doc(db, "users", user.email));
         if (userDoc.exists()) {
             const userData = userDoc.data();
-            currentUser.uid = userCredential.user.uid;
+            currentUser.uid = user.uid;
             currentUser.name = userData.name;
             currentUser.bio = userData.bio || currentUser.bio;
-            currentUser.email = email;
+            currentUser.email = user.email;
             currentUser.isOnline = userData.isOnline;
             currentUser.profilePic = userData.profilePic || "";
             currentUser.darkMode = userData.darkMode || false;
+            saveCurrentState();
+            showDashboardLoggedIn();
         }
-        
-        saveCurrentState();
-        showDashboardLoggedIn();
-        
-    } catch (error) {
-        alert(error.message);
+    } else {
+        clearSession();
+        document.getElementById("dashboard").classList.add("hidden");
+        document.querySelector(".auth-container").classList.remove("hidden");
+        document.getElementById("signinForm").classList.remove("hidden");
+        document.getElementById("signupForm").classList.add("hidden");
+        if (unsubscribeUsers) unsubscribeUsers();
+        if (unsubscribeMessages) unsubscribeMessages();
+        activeChatUser = null;
     }
 });
 
@@ -289,14 +298,6 @@ async function logout() {
     try {
         await updateUserStatus(false);
         await signOut(auth);
-        clearSession();
-        document.getElementById("dashboard").style.display = "none";
-        document.querySelector(".auth-container").classList.remove("hidden");
-        document.getElementById("signinForm").classList.remove("hidden");
-        document.getElementById("signupForm").classList.add("hidden");
-        if (unsubscribeUsers) unsubscribeUsers();
-        if (unsubscribeMessages) unsubscribeMessages();
-        activeChatUser = null;
     } catch (error) {
         alert(error.message);
     }
@@ -305,19 +306,22 @@ async function logout() {
 // ==============================
 // DROPDOWN MENU
 // ==============================
-function toggleMenu() {
+function toggleMenu(e) {
+    e.stopPropagation();
     const mainMenu = document.getElementById("mainDropdown");
     const settingsMenu = document.getElementById("settingsDropdown");
     settingsMenu.classList.add("hidden");
     mainMenu.classList.toggle("hidden");
 }
 
-function showSettings() {
+function showSettings(e) {
+    e.stopPropagation();
     document.getElementById("mainDropdown").classList.add("hidden");
     document.getElementById("settingsDropdown").classList.remove("hidden");
 }
 
-function showMainMenu() {
+function showMainMenu(e) {
+    e.stopPropagation();
     document.getElementById("settingsDropdown").classList.add("hidden");
     document.getElementById("mainDropdown").classList.remove("hidden");
 }
@@ -325,7 +329,8 @@ function showMainMenu() {
 // ==============================
 // SETTINGS TOGGLES
 // ==============================
-async function toggleDarkMode() {
+async function toggleDarkMode(e) {
+    e.stopPropagation();
     document.body.classList.toggle("dark-mode");
     currentUser.darkMode = document.body.classList.contains("dark-mode");
     document.getElementById("darkModeToggle").classList.toggle("active");
@@ -335,7 +340,8 @@ async function toggleDarkMode() {
     } catch (e) {}
 }
 
-async function toggleMyStatus() {
+async function toggleMyStatus(e) {
+    e.stopPropagation();
     currentUser.isOnline = !currentUser.isOnline;
     document.getElementById("statusToggle").classList.toggle("active");
     
@@ -430,7 +436,10 @@ function loadMessages() {
             const div = document.createElement("div");
             div.className = msg.sender === currentUser.email ? "message sent" : "message received";
 
-            const time = msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Sending...';
+            let time = 'Sending...';
+            if (msg.createdAt) {
+                time = new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'});
+            }
             div.innerHTML = `<div class="message-content">${msg.text || ''}</div><span class="timestamp">${time}</span>`;
             chatBox.appendChild(div);
         });
@@ -449,8 +458,11 @@ function handleKeyPress(event) {
 // ==============================
 // EMOJI PICKER
 // ==============================
-function toggleEmojiPicker() {
-    document.getElementById("emojiPicker").classList.toggle("hidden");
+function toggleEmojiPicker(e) {
+    e.stopPropagation();
+    const picker = document.getElementById("emojiPicker");
+    picker.classList.toggle("hidden");
+    picker.classList.toggle("active");
 }
 
 function showEmojiTab(tab) {
@@ -469,6 +481,7 @@ function addEmoji(emoji) {
     const input = document.getElementById("messageInput");
     input.value += emoji;
     document.getElementById("emojiPicker").classList.add("hidden");
+    document.getElementById("emojiPicker").classList.remove("active");
 }
 
 // ==============================
@@ -526,14 +539,14 @@ function startAudioCall() { alert("Audio Call Started (Feature coming soon)"); }
 function startVideoCall() { alert("Video Call Started (Feature coming soon)"); }
 
 // ==============================
-// RIGHT SIDEBAR — ✅ MAIN FIX HERE
+// RIGHT SIDEBAR
 // ==============================
-function toggleRightSidebar() {
+function toggleRightSidebar(e) {
+    if (e) e.stopPropagation();
     const sidebar = document.getElementById("rightSidebar");
     sidebar.classList.toggle("active");
     
     if (sidebar.classList.contains("active")) {
-        // ✅ IF NO ACTIVE CHAT USER OR IT'S YOU → LOAD YOUR PROFILE
         if (!activeChatUser || activeChatUser.email === currentUser.email) {
             loadMyProfileToSidebar();
         } else {
@@ -574,31 +587,22 @@ function loadUserProfileToSidebar() {
     
     document.getElementById("blockBtn").classList.remove("hidden");
     document.getElementById("editProfileBtn").classList.add("hidden");
+    document.getElementById("blockBtn").textContent = blockedUsers.includes(activeChatUser.email) ? "Unblock User" : "Block User";
 }
 
-// ✅ THIS IS THE MAIN FIX — WHEN CLICK EDIT FROM MENU
-function openSidebarEditProfile() {
-    // Close dropdown menus first
+function openSidebarEditProfile(e) {
+    if (e) e.stopPropagation();
     document.getElementById("mainDropdown").classList.add("hidden");
     document.getElementById("settingsDropdown").classList.add("hidden");
 
-    // ✅ SET ACTIVE USER TO YOURSELF SO DATA LOADS
     activeChatUser = { ...currentUser };
-
-    // Open sidebar
     const sidebar = document.getElementById("rightSidebar");
-    if (!sidebar.classList.contains("active")) {
-        sidebar.classList.add("active");
-    }
+    if (!sidebar.classList.contains("active")) sidebar.classList.add("active");
 
-    // Load your profile data first
     loadMyProfileToSidebar();
-
-    // Switch to edit mode
     document.getElementById("sidebarViewMode").classList.add("hidden");
     document.getElementById("sidebarEditMode").classList.remove("hidden");
     
-    // Fill data
     document.getElementById("editSidebarName").value = currentUser.name;
     document.getElementById("editSidebarBio").value = currentUser.bio;
     
@@ -615,6 +619,7 @@ function closeSidebarEditMode() {
 
 function previewProfilePic(event) {
     const reader = new FileReader();
+    event.stopPropagation();
     reader.onload = function(e) {
         const avatar = document.getElementById("editProfileAvatar");
         avatar.style.backgroundImage = `url("${e.target.result}")`;
@@ -624,8 +629,8 @@ function previewProfilePic(event) {
     reader.readAsDataURL(event.target.files[0]);
 }
 
-// ✅ SAVE WITH FIREBASE STORAGE
-async function saveSidebarProfile() {
+async function saveSidebarProfile(e) {
+    e.stopPropagation();
     const newName = document.getElementById("editSidebarName").value.trim();
     const newBio = document.getElementById("editSidebarBio").value.trim();
     const picInput = document.getElementById("editProfilePic");
@@ -662,24 +667,25 @@ async function updateProfileInFirestore() {
         closeSidebarEditMode();
         alert("Profile updated successfully!");
     } catch (e) {
-        alert("Error updating profile");
+        alert("Error updating profile: " + e.message);
     }
 }
 
 // ==============================
 // BLOCK USER
 // ==============================
-function toggleBlockUser() {
+function toggleBlockUser(e) {
+    e.stopPropagation();
     if (!activeChatUser) return;
     
     const index = blockedUsers.indexOf(activeChatUser.email);
     if (index === -1) {
         blockedUsers.push(activeChatUser.email);
-        document.getElementById("blockBtn").innerHTML = '<i class="fas fa-ban"></i> Unblock User';
+        document.getElementById("blockBtn").textContent = "Unblock User";
         alert("User blocked");
     } else {
         blockedUsers.splice(index, 1);
-        document.getElementById("blockBtn").innerHTML = '<i class="fas fa-ban"></i> Block User';
+        document.getElementById("blockBtn").textContent = "Block User";
         alert("User unblocked");
     }
 }
@@ -715,8 +721,6 @@ window.addEventListener("DOMContentLoaded", () => {
     document.getElementById("settingsBtn").addEventListener("click", showSettings);
     document.getElementById("backToMenuBtn").addEventListener("click", showMainMenu);
     document.getElementById("logoutBtn").addEventListener("click", logout);
-
-    // ✅ EDIT PROFILE FROM MENU — NOW 100% WORKS
     document.getElementById("editBtn").addEventListener("click", openSidebarEditProfile);
 
     // Settings
@@ -755,23 +759,24 @@ window.addEventListener("DOMContentLoaded", () => {
     // Calls
     document.getElementById("audioCallBtn").addEventListener("click", startAudioCall);
     document.getElementById("videoCallBtn").addEventListener("click", startVideoCall);
-    document.getElementById("createGroupBtn").addEventListener("click", createGroup);
+    document.getElementById("createGroupBtn").addEventListener("click, createGroup");
 
-    // Click outside close
+    // ✅ CLICK OUTSIDE TO CLOSE MENUS
     document.addEventListener("click", (e) => {
-        const menuBtn = document.querySelector(".menu-header");
         const mainMenu = document.getElementById("mainDropdown");
         const settingsMenu = document.getElementById("settingsDropdown");
+        const menuBtn = document.querySelector(".menu-header");
 
-        if (mainMenu && !mainMenu.classList.contains("hidden") && !menuBtn.contains(e.target) && !mainMenu.contains(e.target) && !settingsMenu.contains(e.target)) {
+        if (!mainMenu.classList.contains("hidden") && !menuBtn.contains(e.target) && !mainMenu.contains(e.target)) {
             mainMenu.classList.add("hidden");
             settingsMenu.classList.add("hidden");
         }
 
         const emojiPicker = document.getElementById("emojiPicker");
         const emojiBtn = document.querySelector(".icon-btn#emojiBtn");
-        if (emojiPicker && !emojiPicker.classList.contains("hidden") && !emojiPicker.contains(e.target) && !emojiBtn.contains(e.target)) {
+        if (emojiPicker.classList.contains("active") && !emojiPicker.contains(e.target) && !emojiBtn.contains(e.target)) {
             emojiPicker.classList.add("hidden");
+            emojiPicker.classList.remove("active");
         }
     });
 });
