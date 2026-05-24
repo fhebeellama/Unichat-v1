@@ -381,3 +381,166 @@ body.dark-mode .menu-item:hover { background: #24345c; }
     .message { max-width: 85%; }
     .emoji-picker { width: 90%; }
 }
+/* No Messages Text */
+.no-messages {
+    text-align: center;
+    color: var(--gray);
+    margin-top: 50px;
+    font-size: 14px;
+}
+/* ========================= INPUT AREA ========================= */
+.input-area {
+    background: white;
+    border-top: 1px solid #ddd;
+    padding: 12px;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    width: 100%;
+}
+
+.icons {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+}
+
+.icon-btn {
+    background: none;
+    border: none;
+    font-size: 1.2rem;
+    cursor: pointer;
+    color: #666;
+    padding: 8px;
+}
+
+.icon-btn:hover {
+    transform: scale(1.1);
+}
+
+#messageInput {
+    flex: 1;
+    padding: 12px;
+    border: 1px solid #ddd;
+    border-radius: 25px;
+    font-size: 14px;
+    outline: none;
+}
+
+#messageInput:focus {
+    border-color: var(--primary);
+}
+
+.send-btn {
+    width: 42px;
+    height: 42px;
+    border: none;
+    border-radius: 50%;
+    background: var(--primary);
+    color: white;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+.send-btn:hover {
+    background: var(--primary-dark);
+}
+
+/* ========================= EMOJI PICKER ========================= */
+.emoji-picker {
+    position: absolute;
+    bottom: 70px;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 320px;
+    height: 350px;
+    background: white;
+    border-radius: 15px;
+    border: 1px solid #ddd;
+    display: none;
+    flex-direction: column;
+    box-shadow: 0 5px 20px rgba(0,0,0,0.2);
+    z-index: 1000;
+}
+
+.emoji-picker.active {
+    display: flex;
+}
+
+.emoji-picker-header {
+    display: flex;
+    gap: 10px;
+    padding: 10px;
+    background: #f8f9fa;
+    border-bottom: 1px solid #eee;
+}
+
+.emoji-tab-btn {
+    border: none;
+    background: none;
+    padding: 6px 12px;
+    border-radius: 20px;
+    cursor: pointer;
+}
+
+.emoji-tab-btn.active {
+    background: var(--primary);
+    color: white;
+}
+
+.emoji-search {
+    padding: 10px;
+    border-bottom: 1px solid #eee;
+}
+
+.emoji-search input {
+    width: 100%;
+    padding: 10px;
+    border-radius: 20px;
+    border: 1px solid #ddd;
+    outline: none;
+}
+
+.emoji-content {
+    flex: 1;
+    overflow-y: auto;
+    padding: 10px;
+}
+
+.emoji-grid {
+    display: grid;
+    grid-template-columns: repeat(8, 1fr);
+    gap: 5px;
+}
+
+.emoji-item {
+    padding: 5px;
+    text-align: center;
+    cursor: pointer;
+    font-size: 22px;
+    border-radius: 8px;
+}
+
+.emoji-item:hover {
+    background: #f0f0f0;
+}
+
+/* ========================= CHAT MESSAGES ========================= */
+.chat-messages {
+    flex: 1;
+    overflow-y: auto;
+    padding: 20px;
+    background: #f0f2f5;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    min-height: 200px;
+}
+
+.no-messages {
+    text-align: center;
+    color: #888;
+    margin-top: 50px;
+}
