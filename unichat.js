@@ -2,39 +2,28 @@
 // FIREBASE IMPORTS
 // ==============================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-
 import {
-    getAuth,
-    createUserWithEmailAndPassword,
-    signInWithEmailAndPassword,
-    signOut,
-    onAuthStateChanged
+    getAuth, createUserWithEmailAndPassword,
+    signInWithEmailAndPassword, signOut, onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-
 import {
-    getFirestore,
-    collection,
-    addDoc,
-    onSnapshot,
-    query,
-    orderBy,
-    serverTimestamp
+    getFirestore, collection, addDoc, onSnapshot,
+    query, orderBy, serverTimestamp, doc, setDoc, updateDoc, getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
 // ==============================
 // FIREBASE CONFIG
 // ==============================
 const firebaseConfig = {
-    apiKey: "YOUR_API_KEY",
-    authDomain: "unichat-v1.firebaseapp.com",
-    projectId: "unichat-v1",
-    storageBucket: "unichat-v1.appspot.com",
-    messagingSenderId: "1014572806433",
-    appId: "1:1014572806433:web:d496a60f3011993217ce60"
+  apiKey: "AIzaSyDdVR0x17NB3ma4ulyL-Jdv3rukfNijwgs",
+  authDomain: "unichat-v1.firebaseapp.com",
+  projectId: "unichat-v1",
+  storageBucket: "unichat-v1.firebasestorage.app",
+  messagingSenderId: "1014572806433",
+  appId: "1:1014572806433:web:d496a60f3011993217ce60"
 };
-
 // ==============================
-// INITIALIZE FIREBASE
+// INITIALIZE
 // ==============================
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
@@ -45,7 +34,7 @@ const db = getFirestore(app);
 // ==============================
 let currentUser = {
     name: "User",
-    username: "user123",
+    email: "",
     bio: "Hey there! I am using Unichat.",
     isOnline: true,
     darkMode: false,
@@ -54,6 +43,8 @@ let currentUser = {
 
 let mediaRecorder;
 let audioChunks = [];
+let activeChatUser = "Bot";
+let blockedUsers = [];
 
 // ==============================
 // LOCAL STORAGE
@@ -64,12 +55,10 @@ function saveCurrentState() {
 
 function loadSavedState() {
     const saved = localStorage.getItem("unichatUser");
-
     if (saved) {
         currentUser = JSON.parse(saved);
         return true;
     }
-
     return false;
 }
 
@@ -82,18 +71,16 @@ function clearSession() {
 // ==============================
 function startApp() {
     const splash = document.getElementById("splashScreen");
-
     if (splash) {
         splash.style.display = "none";
     }
-
+    
     if (loadSavedState()) {
         showDashboardLoggedIn();
     } else {
         document.querySelector(".auth-container").classList.remove("hidden");
     }
 }
-
 window.startApp = startApp;
 
 // ==============================
@@ -101,47 +88,49 @@ window.startApp = startApp;
 // ==============================
 function showDashboardLoggedIn() {
     document.querySelector(".auth-container").classList.add("hidden");
-
-    const dashboard = document.getElementById("dashboard");
-
-    dashboard.style.display = "flex";
-
+    document.getElementById("dashboard").style.display = "flex";
     applyUserSettings();
 }
 
 function applyUserSettings() {
     document.getElementById("menuUserName").textContent = currentUser.name;
-
-    const avatar = document.getElementById("menuAvatar");
-
-    avatar.textContent = currentUser.name.charAt(0).toUpperCase();
-
+    const menuAvatar = document.getElementById("menuAvatar");
+    menuAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
+    
     if (currentUser.profilePic) {
-        avatar.style.backgroundImage = `url(${currentUser.profilePic})`;
-        avatar.style.backgroundSize = "cover";
+        menuAvatar.style.backgroundImage = `url(${currentUser.profilePic})`;
+        menuAvatar.style.backgroundSize = "cover";
     }
-
-    updateProfileView();
-
+    
+    const statusEl = document.getElementById("menuUserStatus");
+    statusEl.textContent = currentUser.isOnline ? "● Online" : "○ Offline";
+    statusEl.style.color = currentUser.isOnline ? "#55efc4" : "#95a5a6";
+    
     if (currentUser.darkMode) {
         document.body.classList.add("dark-mode");
         document.getElementById("darkModeToggle").classList.add("active");
+    } else {
+        document.body.classList.remove("dark-mode");
+        document.getElementById("darkModeToggle").classList.remove("active");
+    }
+    
+    if (currentUser.isOnline) {
+        document.getElementById("statusToggle").classList.add("active");
+    } else {
+        document.getElementById("statusToggle").classList.remove("active");
     }
 }
-
 // ==============================
 // AUTH SWITCH
 // ==============================
 document.getElementById("showSignin").addEventListener("click", (e) => {
     e.preventDefault();
-
     document.getElementById("signupForm").classList.add("hidden");
     document.getElementById("signinForm").classList.remove("hidden");
 });
 
 document.getElementById("showSignup").addEventListener("click", (e) => {
     e.preventDefault();
-
     document.getElementById("signinForm").classList.add("hidden");
     document.getElementById("signupForm").classList.remove("hidden");
 });
@@ -149,35 +138,42 @@ document.getElementById("showSignup").addEventListener("click", (e) => {
 // ==============================
 // SIGNUP
 // ==============================
-document.getElementById("signupFormElement")
-.addEventListener("submit", async (e) => {
-
+document.getElementById("signupFormElement").addEventListener("submit", async (e) => {
     e.preventDefault();
-
+    
     const name = document.getElementById("signupName").value.trim();
-    const username = document.getElementById("signupUsername").value.trim();
-    const email = document.getElementById("signupGmail").value.trim();
+    const email = document.getElementById("signupEmail").value.trim();
     const password = document.getElementById("signupPassword").value;
     const confirmPassword = document.getElementById("signupConfirmPassword").value;
-
+    
     if (password !== confirmPassword) {
         alert("Passwords do not match!");
         return;
     }
-
+    
+    if (password.length < 6) {
+        alert("Password must be at least 6 characters!");
+        return;
+    }
+    
     try {
-        await createUserWithEmailAndPassword(auth, email, password);
-
+        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
+        
         currentUser.name = name;
-        currentUser.username = username;
-
+        currentUser.email = email;
+        
+        await setDoc(doc(db, "users", email), {
+            name: name,
+            email: email,
+            bio: currentUser.bio,
+            isOnline: true,
+            profilePic: ""
+        });
+        
         saveCurrentState();
-
         alert("Account created!");
-
-        document.getElementById("signupForm").classList.add("hidden");
-        document.getElementById("signinForm").classList.remove("hidden");
-
+        showDashboardLoggedIn();
+        
     } catch (error) {
         alert(error.message);
     }
@@ -186,25 +182,27 @@ document.getElementById("signupFormElement")
 // ==============================
 // LOGIN
 // ==============================
-document.getElementById("signinFormElement")
-.addEventListener("submit", async (e) => {
-
+document.getElementById("signinFormElement").addEventListener("submit", async (e) => {
     e.preventDefault();
-
-    const email = document.getElementById("signinUsername").value;
+    
+    const email = document.getElementById("signinEmail").value.trim();
     const password = document.getElementById("signinPassword").value;
-
+    
     try {
-        const userCredential =
-            await signInWithEmailAndPassword(auth, email, password);
-
-        currentUser.name = userCredential.user.email;
-        currentUser.username = userCredential.user.email;
-
+        const userCredential = await signInWithEmailAndPassword(auth, email, password);
+        
+        const userDoc = await getDoc(doc(db, "users", email));
+        if (userDoc.exists()) {
+            const userData = userDoc.data();
+            currentUser.name = userData.name;
+            currentUser.bio = userData.bio || currentUser.bio;
+            currentUser.email = email;
+            currentUser.isOnline = userData.isOnline;
+        }
+        
         saveCurrentState();
-
         showDashboardLoggedIn();
-
+        
     } catch (error) {
         alert(error.message);
     }
@@ -216,358 +214,371 @@ document.getElementById("signinFormElement")
 async function logout() {
     try {
         await signOut(auth);
-
         clearSession();
-
         document.getElementById("dashboard").style.display = "none";
-
-        document.querySelector(".auth-container")
-            .classList.remove("hidden");
-
+        document.querySelector(".auth-container").classList.remove("hidden");
     } catch (error) {
         alert(error.message);
     }
 }
-
 window.logout = logout;
-
-// ==============================
-// FIRESTORE REALTIME CHAT
-// ==============================
-const messagesContainer = document.querySelector(".chat-messages");
-
-const q = query(
-    collection(db, "messages"),
-    orderBy("createdAt", "asc")
-);
-
-onSnapshot(q, (snapshot) => {
-
-    messagesContainer.innerHTML = "";
-
-    snapshot.forEach((doc) => {
-
-        const data = doc.data();
-
-        const type =
-            data.sender === currentUser.name
-                ? "sent"
-                : "received";
-
-        addMessageToUI(data.text, type);
-    });
-
-    messagesContainer.scrollTop =
-        messagesContainer.scrollHeight;
-});
-
-// ==============================
-// SEND MESSAGE
-// ==============================
-async function sendMessage() {
-
-    const input = document.getElementById("messageInput");
-
-    const text = input.value.trim();
-
-    if (!text) return;
-
-    try {
-
-        await addDoc(collection(db, "messages"), {
-            text,
-            sender: currentUser.name,
-            createdAt: serverTimestamp()
-        });
-
-        input.value = "";
-
-    } catch (error) {
-        alert("Failed to send message");
-    }
-}
-
-window.sendMessage = sendMessage;
-
-// ==============================
-// ADD MESSAGE UI
-// ==============================
-function addMessageToUI(text, type) {
-
-    const div = document.createElement("div");
-
-    div.className = `message ${type}`;
-
-    div.innerHTML = `
-        <div class="message-content">${text}</div>
-        <div class="timestamp">
-            ${new Date().toLocaleTimeString([], {
-                hour: '2-digit',
-                minute: '2-digit'
-            })}
-        </div>
-    `;
-
-    messagesContainer.appendChild(div);
-}
-
-// ==============================
-// ENTER KEY
-// ==============================
-function handleKeyPress(event) {
-    if (event.key === "Enter") {
-        event.preventDefault();
-        sendMessage();
-    }
-}
-
-window.handleKeyPress = handleKeyPress;
 
 // ==============================
 // MENU
 // ==============================
 function toggleMenu() {
     const menu = document.getElementById("mainDropdown");
-
-    menu.style.display =
-        menu.style.display === "block"
-            ? "none"
-            : "block";
+    menu.style.display = menu.style.display === "block" ? "none" : "block";
 }
-
 window.toggleMenu = toggleMenu;
 
 function showSettings() {
     document.getElementById("mainDropdown").style.display = "none";
     document.getElementById("settingsDropdown").style.display = "block";
 }
-
 window.showSettings = showSettings;
 
 function showMainMenu() {
     document.getElementById("settingsDropdown").style.display = "none";
     document.getElementById("mainDropdown").style.display = "block";
 }
-
 window.showMainMenu = showMainMenu;
 
 // ==============================
-// DARK MODE
+// SETTINGS TOGGLES
 // ==============================
 function toggleDarkMode() {
-
     document.body.classList.toggle("dark-mode");
-
-    const enabled =
-        document.body.classList.contains("dark-mode");
-
-    currentUser.darkMode = enabled;
-
-    document.getElementById("darkModeToggle")
-        .classList.toggle("active");
-
+    currentUser.darkMode = document.body.classList.contains("dark-mode");
+    document.getElementById("darkModeToggle").classList.toggle("active");
     saveCurrentState();
 }
-
 window.toggleDarkMode = toggleDarkMode;
 
+function toggleMyStatus() {
+    currentUser.isOnline = !currentUser.isOnline;
+    document.getElementById("statusToggle").classList.toggle("active");
+    
+    const statusEl = document.getElementById("menuUserStatus");
+    statusEl.textContent = currentUser.isOnline ? "● Online" : "○ Offline";
+    statusEl.style.color = currentUser.isOnline ? "#55efc4" : "#95a5a6";
+    
+    document.getElementById("chatHeaderStatus").className = "status-indicator " + (currentUser.isOnline ? "online" : "offline");
+    document.getElementById("chatHeaderStatusText").textContent = currentUser.isOnline ? "Active Now" : "Offline";
+    
+    saveCurrentState();
+}
+window.toggleMyStatus = toggleMyStatus;
+
 // ==============================
-// RIGHT SIDEBAR
+// CHAT FUNCTIONS
 // ==============================
-function toggleRightSidebar() {
-    document.getElementById("rightSidebar")
-        .classList.toggle("active");
+function switchUser(userName) {
+    activeChatUser = userName;
+    
+    document.getElementById("chatHeaderAvatar").textContent = userName.charAt(0).toUpperCase();
+    document.getElementById("chatHeaderName").textContent = userName;
+    document.getElementById("chatHeaderStatus").className = "status-indicator online";
+    document.getElementById("chatHeaderStatusText").textContent = "Active Now";
+    
+    document.getElementById("profileAvatar").textContent = userName.charAt(0).toUpperCase();
+    document.getElementById("profileName").textContent = userName;
+    document.getElementById("profileStatus").textContent = "● Online";
+    document.getElementById("profileStatusIndicator").className = "status-indicator online";
+    
+    const blockBtn = document.getElementById("blockBtn");
+    if (blockedUsers.includes(userName)) {
+        blockBtn.innerHTML = '<i class="fas fa-check"></i> Unblock User';
+        blockBtn.style.background = "#27ae60";
+    } else {
+        blockBtn.innerHTML = '<i class="fas fa-ban"></i> Block User';
+        blockBtn.style.background = "#e74c3c";
+    }
+    
+    document.getElementById("chatMessages").innerHTML = '<p class="no-messages">You are now chatting with ' + userName + '</p>';
+}
+window.switchUser = switchUser;
+
+// ==============================
+// SEND MESSAGE
+// ==============================
+function sendMessage() {
+    const input = document.getElementById("messageInput");
+    const text = input.value.trim();
+    
+    if (!text) return;
+    if (blockedUsers.includes(activeChatUser)) {
+        alert("You have blocked this user!");
+        return;
+    }
+    
+    addMessageToUI(text, "sent");
+    input.value = "";
+}
+window.sendMessage = sendMessage;
+
+function addMessageToUI(text, type) {
+    const container = document.getElementById("chatMessages");
+    const div = document.createElement("div");
+    div.className = "message " + type;
+    div.innerHTML = `
+        <div class="message-content">${text}</div>
+        <div class="timestamp">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+    `;
+    container.appendChild(div);
+    container.scrollTop = container.scrollHeight;
 }
 
-window.toggleRightSidebar = toggleRightSidebar;
+function handleKeyPress(event) {
+    if (event.key === "Enter") {
+        event.preventDefault();
+        sendMessage();
+    }
+}
+window.handleKeyPress = handleKeyPress;
 
 // ==============================
-// PROFILE
+// EMOJI PICKER
 // ==============================
-function updateProfileView() {
+function toggleEmojiPicker() {
+    document.getElementById("emojiPicker").classList.toggle("active");
+}
+window.toggleEmojiPicker = toggleEmojiPicker;
 
-    document.getElementById("profileName")
-        .textContent = currentUser.name;
-
-    document.getElementById("profileBio")
-        .textContent = currentUser.bio;
-
-    const avatar =
-        document.getElementById("profileAvatar");
-
-    avatar.textContent =
-        currentUser.name.charAt(0).toUpperCase();
-
-    if (currentUser.profilePic) {
-        avatar.style.backgroundImage =
-            `url(${currentUser.profilePic})`;
-
-        avatar.style.backgroundSize = "cover";
+function showEmojiTab(tab) {
+    const content = document.getElementById("emojiContent");
+    const emojis = [
+        "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
+        "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰",
+        "😘", "😗", "😙", "😚", "😋", "😛", "😜", "🤪",
+        "😝", "🤗", "🤭", "🤫", "🤔", "🤐", "🤨", "😐",
+        "😑", "😶", "😏", "😒", "🙄", "😬", "🤥", "😌",
+        "😔", "😪", "🤤", "😴", "😷", "🤒", "🤕", "🤢",
+        "🤮", "🤧", "🥵", "🥶", "🥴", "😵", "🤯", "🤠",
+        "🥳", "😎", "🤓", "🧐", "😕", "😟", "🙁", "☹️"
+    ];
+    
+    if (tab === "emoji") {
+        content.innerHTML = '<div class="emoji-grid">' +
+            emojis.map(e => `<div class="emoji-item" onclick="addEmoji('${e}')">${e}</div>`).join('') +
+            '</div>';
+    } else {
+        content.innerHTML = '<p style="text-align:center;padding:20px;">GIF search coming soon!</p>';
     }
 }
 
-// ==============================
-// EDIT PROFILE
-// ==============================
-function openSidebarEditProfile() {
-
-    document.getElementById("rightSidebar")
-        .classList.add("active");
-
-    document.getElementById("sidebarViewMode")
-        .style.display = "none";
-
-    document.getElementById("sidebarEditMode")
-        .style.display = "block";
-
-    document.getElementById("editSidebarName")
-        .value = currentUser.name;
-
-    document.getElementById("editSidebarUsername")
-        .value = currentUser.username;
-
-    document.getElementById("editSidebarBio")
-        .value = currentUser.bio;
+function addEmoji(emoji) {
+    const input = document.getElementById("messageInput");
+    input.value += emoji;
+    document.getElementById("emojiPicker").classList.remove("active");
 }
+window.addEmoji = addEmoji;
+window.showEmojiTab = showEmojiTab;
 
-window.openSidebarEditProfile = openSidebarEditProfile;
-
-function closeSidebarEditMode() {
-
-    document.getElementById("sidebarViewMode")
-        .style.display = "block";
-
-    document.getElementById("sidebarEditMode")
-        .style.display = "none";
-
-    document.getElementById("rightSidebar")
-        .classList.remove("active");
-}
-
-window.closeSidebarEditMode = closeSidebarEditMode;
-
-function saveSidebarProfile() {
-
-    currentUser.name =
-        document.getElementById("editSidebarName").value;
-
-    currentUser.username =
-        document.getElementById("editSidebarUsername").value;
-
-    currentUser.bio =
-        document.getElementById("editSidebarBio").value;
-
-    saveCurrentState();
-
-    applyUserSettings();
-
-    alert("Profile updated!");
-
-    closeSidebarEditMode();
-}
-
-window.saveSidebarProfile = saveSidebarProfile;
+// Initialize emojis
+showEmojiTab("emoji");
 
 // ==============================
-// AUDIO RECORDING
+// VOICE RECORDING
 // ==============================
 async function startRecording() {
-
     try {
-
-        const stream =
-            await navigator.mediaDevices.getUserMedia({
-                audio: true
-            });
-
-        mediaRecorder =
-            new MediaRecorder(stream);
-
+        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+        mediaRecorder = new MediaRecorder(stream);
         audioChunks = [];
-
+        
         mediaRecorder.ondataavailable = e => {
             audioChunks.push(e.data);
         };
-
+        
         mediaRecorder.onstop = () => {
-
-            const blob =
-                new Blob(audioChunks, {
-                    type: "audio/webm"
-                });
-
-            const url =
-                URL.createObjectURL(blob);
-
-            const audio =
-                document.createElement("audio");
-
-            audio.controls = true;
-            audio.src = url;
-
-            const div =
-                document.createElement("div");
-
+            const blob = new Blob(audioChunks, { type: "audio/webm" });
+            const url = URL.createObjectURL(blob);
+            
+            const container = document.getElementById("chatMessages");
+            const div = document.createElement("div");
             div.className = "message sent";
-
-            div.appendChild(audio);
-
-            messagesContainer.appendChild(div);
+            div.innerHTML = `<audio controls src="${url}" style="width:200px;"></audio>`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
         };
-
+        
         mediaRecorder.start();
-
     } catch (error) {
         alert("Microphone permission denied");
     }
 }
-
 window.startRecording = startRecording;
 
 function stopRecording() {
-
-    if (mediaRecorder &&
-        mediaRecorder.state !== "inactive") {
-
+    if (mediaRecorder && mediaRecorder.state !== "inactive") {
         mediaRecorder.stop();
     }
 }
-
 window.stopRecording = stopRecording;
+
+// ==============================
+// IMAGE SEND
+// ==============================
+function sendImage(input) {
+    if (input.files && input.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const container = document.getElementById("chatMessages");
+            const div = document.createElement("div");
+            div.className = "message sent";
+            div.innerHTML = `<img src="${e.target.result}" style="max-width:200px;border-radius:10px;">`;
+            container.appendChild(div);
+            container.scrollTop = container.scrollHeight;
+        };
+        reader.readAsDataURL(input.files[0]);
+    }
+}
+window.sendImage = sendImage;
 
 // ==============================
 // CALLS
 // ==============================
 function startAudioCall() {
-    alert("Audio Call Started");
+    alert("Audio Call Started (Feature coming soon)");
 }
+window.startAudioCall = startAudioCall;
 
 function startVideoCall() {
-    alert("Video Call Started");
+    alert("Video Call Started (Feature coming soon)");
 }
-
-window.startAudioCall = startAudioCall;
 window.startVideoCall = startVideoCall;
 
 // ==============================
-// START APP
+// RIGHT SIDEBAR
+// ==============================
+function toggleRightSidebar() {
+    document.getElementById("rightSidebar").classList.toggle("active");
+}
+window.toggleRightSidebar = toggleRightSidebar;
+
+function openSidebarEditProfile() {
+    document.getElementById("rightSidebar").classList.add("active");
+    document.getElementById("sidebarViewMode").style.display = "none";
+    document.getElementById("sidebarEditMode").style.display = "block";
+    
+    document.getElementById("editSidebarName").value = currentUser.name;
+    document.getElementById("editSidebarBio").value = currentUser.bio;
+}
+window.openSidebarEditProfile = openSidebarEditProfile;
+
+function closeSidebarEditMode() {
+    document.getElementById("sidebarViewMode").style.display = "block";
+    document.getElementById("sidebarEditMode").style.display = "none";
+    document.getElementById("rightSidebar").classList.remove("active");
+}
+window.closeSidebarEditMode = closeSidebarEditMode;
+
+function saveSidebarProfile() {
+    currentUser.name = document.getElementById("editSidebarName").value;
+    currentUser.bio = document.getElementById("editSidebarBio").value;
+    
+    saveCurrentState();
+    applyUserSettings();
+    alert("Profile updated!");
+    closeSidebarEditMode();
+}
+window.saveSidebarProfile = saveSidebarProfile;
+
+function previewProfilePic(event) {
+    if (event.target.files && event.target.files[0]) {
+        const reader = new FileReader();
+        reader.onload = function(e) {
+            const avatar = document.getElementById("editProfileAvatar");
+            avatar.textContent = "";
+            avatar.style.backgroundImage = `url(${e.target.result})`;
+            avatar.style.backgroundSize = "cover";
+            currentUser.profilePic = e.target.result;
+        };
+        reader.readAsDataURL(event.target.files[0]);
+    }
+}
+window.previewProfilePic = previewProfilePic;
+
+// ==============================
+// BLOCK USER
+// ==============================
+
+// ==============================
+// BLOCK USER
+// ==============================
+function toggleBlockUser() {
+    const blockBtn = document.getElementById("blockBtn");
+    
+    if (blockedUsers.includes(activeChatUser)) {
+        // Unblock
+        blockedUsers = blockedUsers.filter(u => u !== activeChatUser);
+        blockBtn.innerHTML = '<i class="fas fa-ban"></i> Block User';
+        blockBtn.style.background = "#e74c3c";
+        alert("User unblocked!");
+    } else {
+        // Block
+        blockedUsers.push(activeChatUser);
+        blockBtn.innerHTML = '<i class="fas fa-check"></i> Unblock User';
+        blockBtn.style.background = "#27ae60";
+        alert("User blocked!");
+    }
+}
+window.toggleBlockUser = toggleBlockUser;
+
+// ==============================
+// CREATE GROUP
+// ==============================
+function createGroup() {
+    const groupName = prompt("Enter group name:");
+    if (groupName) {
+        const userList = document.getElementById("userList");
+        const newUser = document.createElement("div");
+        newUser.className = "user";
+        newUser.onclick = function() { switchUser(groupName); };
+        newUser.innerHTML = `
+            <div class="avatar-container">
+                <div class="avatar" style="background:#e74c3c;">${groupName.charAt(0)}</div>
+            </div>
+            <div class="user-info">
+                <h4>${groupName}</h4>
+                <p>Group Chat</p>
+            </div>
+        `;
+        userList.appendChild(newUser);
+        alert("Group created: " + groupName);
+    }
+}
+window.createGroup = createGroup;
+
+// ==============================
+// FILTER CHAT
+// ==============================
+function filterChat(searchText) {
+    const users = document.querySelectorAll(".user");
+    users.forEach(user => {
+        const name = user.querySelector("h4").textContent.toLowerCase();
+        if (name.includes(searchText.toLowerCase())) {
+            user.style.display = "flex";
+        } else {
+            user.style.display = "none";
+        }
+    });
+}
+window.filterChat = filterChat;
+
+// ==============================
+// INIT
 // ==============================
 document.addEventListener("DOMContentLoaded", () => {
-
     applyUserSettings();
-
+    
+    // Close menus when clicking outside
     document.addEventListener("click", (e) => {
-
-        const menu =
-            document.querySelector(".menu-header");
-
+        const menu = document.querySelector(".menu-header");
         if (menu && !menu.contains(e.target)) {
-
-            document.getElementById("mainDropdown")
-                .style.display = "none";
-
-            document.getElementById("settingsDropdown")
-                .style.display = "none";
+            document.getElementById("mainDropdown").style.display = "none";
+            document.getElementById("settingsDropdown").style.display = "none";
         }
     });
 });
