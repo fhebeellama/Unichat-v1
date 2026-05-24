@@ -81,7 +81,7 @@ function clearSession() {
 }
 
 // ==============================
-// SPLASH SCREEN
+// ✅ FIXED SPLASH SCREEN LOGIC
 // ==============================
 function startApp() {
     if (splashClicked) return;
@@ -89,23 +89,29 @@ function startApp() {
 
     const splash = document.getElementById("splashScreen");
     if (splash) {
-        splash.style.display = "none";
+        splash.classList.add("hidden"); // ✅ Use class instead of style
     }
 
     if (loadSavedState()) {
         showDashboardLoggedIn();
     } else {
+        // ✅ Show auth, hide dashboard
         document.querySelector(".auth-container").classList.remove("hidden");
+        document.getElementById("dashboard").classList.add("hidden");
         document.getElementById("signinForm").classList.remove("hidden");
+        document.getElementById("signupForm").classList.add("hidden");
     }
 }
 
 // ==============================
-// DASHBOARD
+// ✅ FIXED DASHBOARD SHOW/HIDE
 // ==============================
 function showDashboardLoggedIn() {
+    // ✅ Hide auth, show dashboard properly
     document.querySelector(".auth-container").classList.add("hidden");
-    document.getElementById("dashboard").style.display = "flex";
+    const dashboard = document.getElementById("dashboard");
+    dashboard.classList.remove("hidden");
+    
     applyUserSettings();
     if (unsubscribeUsers) unsubscribeUsers();
     loadUsers();
@@ -300,7 +306,7 @@ async function logout() {
         await updateUserStatus(false);
         await signOut(auth);
         clearSession();
-        document.getElementById("dashboard").style.display = "none";
+        document.getElementById("dashboard").classList.add("hidden");
         document.querySelector(".auth-container").classList.remove("hidden");
         document.getElementById("signinForm").classList.remove("hidden");
         document.getElementById("signupForm").classList.add("hidden");
