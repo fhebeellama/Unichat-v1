@@ -178,15 +178,16 @@ function applyUserSettings() {
         }
     }
 
-    const profileStatus =
-        document.querySelector('.profile-status');
-
+    const profileStatus = document.querySelector('.profile-status');
     if (profileStatus) {
-
-        profileStatus.textContent =
-            currentUser.isOnline
-                ? '● Online'
-                : '○ Offline';
+        profileStatus.textContent = currentUser.isOnline
+            ? '● Online'
+            : '○ Offline';
+        
+        // Add color for online status
+        if (currentUser.isOnline) {
+            profileStatus.style.color = '#55efc4';
+        }
     }
 
     const darkToggle =
@@ -457,26 +458,44 @@ document.addEventListener('click', (e) => {
 // STATUS TOGGLE
 // ==============================
 
+// ==============================
+// STATUS TOGGLE - FIXED
+// ==============================
+
 function toggleStatus() {
     const toggle = document.getElementById('statusToggle');
-
     if (!toggle) return;
 
     toggle.classList.toggle('active');
-
     currentUser.isOnline = toggle.classList.contains('active');
 
+    // Update the profile status text
     const profileStatus = document.querySelector('.profile-status');
-
     if (profileStatus) {
         profileStatus.textContent = currentUser.isOnline
             ? '● Online'
             : '○ Offline';
+        
+        // Update color based on status
+        profileStatus.style.color = currentUser.isOnline
+            ? '#55efc4'
+            : '#95a5a6';
+    }
+
+    // Update the status indicator in the header avatar
+    const headerStatus = document.querySelector('.header .status-indicator');
+    if (headerStatus) {
+        if (currentUser.isOnline) {
+            headerStatus.classList.add('online');
+            headerStatus.classList.remove('offline');
+        } else {
+            headerStatus.classList.add('offline');
+            headerStatus.classList.remove('online');
+        }
     }
 
     saveCurrentState();
 }
-
 // ==============================
 // DARK MODE
 // ==============================
