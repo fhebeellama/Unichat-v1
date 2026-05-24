@@ -507,6 +507,9 @@ window.previewProfilePic = previewProfilePic;
 // ==============================
 // BLOCK USER
 // ==============================
+// ==============================
+// BLOCK USER - FIXED!
+// ==============================
 function toggleBlockUser() {
     const blockBtn = document.getElementById("blockBtn");
     
