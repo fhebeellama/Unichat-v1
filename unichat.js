@@ -1,345 +1,325 @@
-// ==============================
+// =====================================
 // FIREBASE IMPORTS
-// ==============================
+// =====================================
 import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
+
 import {
-    getAuth, createUserWithEmailAndPassword,
-    signInWithEmailAndPassword, signOut, onAuthStateChanged
+    getAuth,
+    createUserWithEmailAndPassword,
+    signInWithEmailAndPassword,
+    signOut,
+    onAuthStateChanged
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
+
 import {
-    getFirestore, collection, addDoc, onSnapshot,
-    query, orderBy, serverTimestamp, doc, setDoc, updateDoc, getDoc
+    getFirestore,
+    collection,
+    addDoc,
+    onSnapshot,
+    query,
+    orderBy,
+    serverTimestamp,
+    doc,
+    setDoc,
+    updateDoc,
+    getDoc
 } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
 
-// ==============================
+// =====================================
 // FIREBASE CONFIG
-// ==============================
+// =====================================
 const firebaseConfig = {
-  apiKey: "AIzaSyDdVR0x17NB3ma4ulyL-Jdv3rukfNijwgs",
-  authDomain: "unichat-v1.firebaseapp.com",
-  projectId: "unichat-v1",
-  storageBucket: "unichat-v1.firebasestorage.app",
-  messagingSenderId: "1014572806433",
-  appId: "1:1014572806433:web:d496a60f3011993217ce60"
+    apiKey: "YOUR_API_KEY",
+    authDomain: "YOUR_PROJECT.firebaseapp.com",
+    projectId: "YOUR_PROJECT_ID",
+    storageBucket: "YOUR_PROJECT.appspot.com",
+    messagingSenderId: "YOUR_SENDER_ID",
+    appId: "YOUR_APP_ID"
 };
-// ==============================
-// INITIALIZE
-// ==============================
+
+// =====================================
+// INITIALIZE FIREBASE
+// =====================================
 const app = initializeApp(firebaseConfig);
 const auth = getAuth(app);
 const db = getFirestore(app);
 
-// ==============================
+// =====================================
 // GLOBAL VARIABLES
-// ==============================
-// ==============================
+// =====================================
+let currentUser = null;
+let activeChatUser = null;
+let unsubscribeMessages = null;
+
+// =====================================
+// SPLASH SCREEN
+// =====================================
+window.startApp = function () {
+    const splash = document.getElementById("splashScreen");
+
+    if (splash) {
+        splash.style.display = "none";
+    }
+};
+
+// =====================================
+// AUTH STATE
+// =====================================
+onAuthStateChanged(auth, async (user) => {
+
+    if (user) {
+
+        const userRef = doc(db, "users", user.email);
+        const userSnap = await getDoc(userRef);
+
+        if (userSnap.exists()) {
+
+            currentUser = userSnap.data();
+
+            showDashboard();
+
+            applyUserSettings();
+
+            loadUsers();
+        }
+
+    } else {
+
+        showAuth();
+    }
+});
+
+// =====================================
+// SHOW AUTH
+// =====================================
+function showAuth() {
+
+    document.querySelector(".auth-container").classList.remove("hidden");
+
+    document.getElementById("dashboard").style.display = "none";
+}
+
+// =====================================
+// SHOW DASHBOARD
+// =====================================
+function showDashboard() {
+
+    document.querySelector(".auth-container").classList.add("hidden");
+
+    document.getElementById("dashboard").style.display = "flex";
+}
+
+// =====================================
+// APPLY USER SETTINGS
+// =====================================
+function applyUserSettings() {
+
+    if (!currentUser) return;
+
+    const name = currentUser.name || "User";
+
+    document.getElementById("menuUserName").textContent = name;
+
+    const avatar = document.getElementById("menuAvatar");
+
+    avatar.textContent = name.charAt(0).toUpperCase();
+
+    document.getElementById("menuUserStatus").textContent =
+        currentUser.isOnline ? "● Online" : "○ Offline";
+
+    if (currentUser.darkMode) {
+        document.body.classList.add("dark-mode");
+    } else {
+        document.body.classList.remove("dark-mode");
+    }
+}
+
+// =====================================
+// SIGNUP
+// =====================================
+document.getElementById("signupFormElement")
+.addEventListener("submit", async (e) => {
+
+    e.preventDefault();
+
+    const name =
+        document.getElementById("signupName").value.trim();
+
+    const email =
+        document.getElementById("signupEmail").value.trim();
+
+    const password =
+        document.getElementById("signupPassword").value;
+
+    const confirmPassword =
+        document.getElementById("signupConfirmPassword").value;
+
+    if (password !== confirmPassword) {
+        alert("Passwords do not match");
+        return;
+    }
+
+    if (password.length < 6) {
+        alert("Password must be at least 6 characters");
+        return;
+    }
+
+    try {
+
+        await createUserWithEmailAndPassword(
+            auth,
+            email,
+            password
+        );
+
+        await setDoc(doc(db, "users", email), {
+            name: name,
+            email: email,
+            bio: "Hey there! I am using Unichat.",
+            profilePic: "",
+            isOnline: true,
+            darkMode: false,
+            createdAt: serverTimestamp()
+        });
+
+        alert("Account created successfully!");
+
+    } catch (error) {
+
+        alert(error.message);
+    }
+});
+
+// =====================================
+// LOGIN
+// =====================================
+document.getElementById("signinFormElement")
+.addEventListener("submit", async (e) => {
+
+    e.preventDefault();
+
+    const email =
+        document.getElementById("signinEmail").value.trim();
+
+    const password =
+        document.getElementById("signinPassword").value;
+
+    try {
+
+        await signInWithEmailAndPassword(
+            auth,
+            email,
+            password
+        );
+
+        await updateDoc(doc(db, "users", email), {
+            isOnline: true
+        });
+
+    } catch (error) {
+
+        alert(error.message);
+    }
+});
+
+// =====================================
+// LOGOUT
+// =====================================
+window.logout = async function () {
+
+    try {
+
+        if (currentUser) {
+
+            await updateDoc(
+                doc(db, "users", currentUser.email),
+                {
+                    isOnline: false
+                }
+            );
+        }
+
+        await signOut(auth);
+
+    } catch (error) {
+
+        alert(error.message);
+    }
+};
+
+// =====================================
 // LOAD USERS
-// ==============================
+// =====================================
 function loadUsers() {
+
     const usersRef = collection(db, "users");
 
     onSnapshot(usersRef, (snapshot) => {
-        const userList = document.querySelector(".user-list");
 
-        // Clear old list
+        const userList =
+            document.getElementById("userList");
+
         userList.innerHTML = "";
 
         snapshot.forEach((docSnap) => {
+
             const user = docSnap.data();
 
-            // Don't show yourself
             if (user.email === currentUser.email) return;
 
-            const userDiv = document.createElement("div");
-            userDiv.className = "user";
+            const div = document.createElement("div");
 
-            userDiv.onclick = () => {
-                switchUser(user);
-            };
+            div.className = "user";
 
-            userDiv.innerHTML = `
-                <div class="avatar">
-                    ${user.name.charAt(0).toUpperCase()}
-                    <span class="status-indicator online"></span>
+            div.innerHTML = `
+                <div class="avatar-container">
+                    <div class="avatar">
+                        ${user.name.charAt(0).toUpperCase()}
+                    </div>
+
+                    <span class="status-indicator ${user.isOnline ? "online" : "offline"}"></span>
                 </div>
 
                 <div class="user-info">
                     <h4>${user.name}</h4>
-                    <p>${user.email}</p>
+                    <p>${user.isOnline ? "Online" : "Offline"}</p>
                 </div>
             `;
 
-            userList.appendChild(userDiv);
+            div.onclick = () => {
+                switchUser(user);
+            };
+
+            userList.appendChild(div);
         });
     });
 }
 
-let currentUser = {
-    name: "User",
-    email: "",
-    bio: "Hey there! I am using Unichat.",
-    isOnline: true,
-    darkMode: false,
-    profilePic: ""
-};
-
-let mediaRecorder;
-let audioChunks = [];
-let activeChatUser = null;
-let blockedUsers = [];
-
-// ==============================
-// LOCAL STORAGE
-// ==============================
-function saveCurrentState() {
-    localStorage.setItem("unichatUser", JSON.stringify(currentUser));
-}
-
-function loadSavedState() {
-    const saved = localStorage.getItem("unichatUser");
-    if (saved) {
-        currentUser = JSON.parse(saved);
-        return true;
-    }
-    return false;
-}
-
-function clearSession() {
-    localStorage.removeItem("unichatUser");
-}
-
-// ==============================
-// SPLASH SCREEN
-// ==============================
-function startApp() {
-    const splash = document.getElementById("splashScreen");
-    if (splash) {
-        splash.style.display = "none";
-    }
-    
-    if (loadSavedState()) {
-        showDashboardLoggedIn();
-    } else {
-        document.querySelector(".auth-container").classList.remove("hidden");
-    }
-}
-window.startApp = startApp;
-
-// ==============================
-// DASHBOARD
-// ==============================
-function showDashboardLoggedIn() {
-    document.querySelector(".auth-container").classList.add("hidden");
-    document.getElementById("dashboard").style.display = "flex";
-    applyUserSettings();
-    loadUsers();
-}
-
-function applyUserSettings() {
-    document.getElementById("menuUserName").textContent = currentUser.name;
-    const menuAvatar = document.getElementById("menuAvatar");
-    menuAvatar.textContent = currentUser.name.charAt(0).toUpperCase();
-    
-    if (currentUser.profilePic) {
-        menuAvatar.style.backgroundImage = `url(${currentUser.profilePic})`;
-        menuAvatar.style.backgroundSize = "cover";
-    }
-    
-    const statusEl = document.getElementById("menuUserStatus");
-    statusEl.textContent = currentUser.isOnline ? "● Online" : "○ Offline";
-    statusEl.style.color = currentUser.isOnline ? "#55efc4" : "#95a5a6";
-    
-    if (currentUser.darkMode) {
-        document.body.classList.add("dark-mode");
-        document.getElementById("darkModeToggle").classList.add("active");
-    } else {
-        document.body.classList.remove("dark-mode");
-        document.getElementById("darkModeToggle").classList.remove("active");
-    }
-    
-    if (currentUser.isOnline) {
-        document.getElementById("statusToggle").classList.add("active");
-    } else {
-        document.getElementById("statusToggle").classList.remove("active");
-    }
-}
-// ==============================
-// AUTH SWITCH
-// ==============================
-document.getElementById("showSignin").addEventListener("click", (e) => {
-    e.preventDefault();
-    document.getElementById("signupForm").classList.add("hidden");
-    document.getElementById("signinForm").classList.remove("hidden");
-});
-
-document.getElementById("showSignup").addEventListener("click", (e) => {
-    e.preventDefault();
-    document.getElementById("signinForm").classList.add("hidden");
-    document.getElementById("signupForm").classList.remove("hidden");
-});
-
-// ==============================
-// SIGNUP
-// ==============================
-document.getElementById("signupFormElement").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    
-    const name = document.getElementById("signupName").value.trim();
-    const email = document.getElementById("signupEmail").value.trim();
-    const password = document.getElementById("signupPassword").value;
-    const confirmPassword = document.getElementById("signupConfirmPassword").value;
-    
-    if (password !== confirmPassword) {
-        alert("Passwords do not match!");
-        return;
-    }
-    
-    if (password.length < 6) {
-        alert("Password must be at least 6 characters!");
-        return;
-    }
-    
-    try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        
-        currentUser.name = name;
-        currentUser.email = email;
-        
-        await setDoc(doc(db, "users", email), {
-            name: name,
-            email: email,
-            bio: currentUser.bio,
-            isOnline: true,
-            profilePic: ""
-        });
-        
-        saveCurrentState();
-        alert("Account created!");
-        showDashboardLoggedIn();
-        
-    } catch (error) {
-        alert(error.message);
-    }
-});
-
-// ==============================
-// LOGIN
-// ==============================
-document.getElementById("signinFormElement").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    
-    const email = document.getElementById("signinEmail").value.trim();
-    const password = document.getElementById("signinPassword").value;
-    
-    try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        
-        const userDoc = await getDoc(doc(db, "users", email));
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            currentUser.name = userData.name;
-            currentUser.bio = userData.bio || currentUser.bio;
-            currentUser.email = email;
-            currentUser.isOnline = userData.isOnline;
-        }
-        
-        saveCurrentState();
-        showDashboardLoggedIn();
-        
-    } catch (error) {
-        alert(error.message);
-    }
-});
-
-// ==============================
-// LOGOUT
-// ==============================
-async function logout() {
-    try {
-        await signOut(auth);
-        clearSession();
-        document.getElementById("dashboard").style.display = "none";
-        document.querySelector(".auth-container").classList.remove("hidden");
-    } catch (error) {
-        alert(error.message);
-    }
-}
-window.logout = logout;
-
-// ==============================
-// MENU
-// ==============================
-function toggleMenu() {
-    const menu = document.getElementById("mainDropdown");
-    menu.style.display = menu.style.display === "block" ? "none" : "block";
-}
-window.toggleMenu = toggleMenu;
-
-function showSettings() {
-    document.getElementById("mainDropdown").style.display = "none";
-    document.getElementById("settingsDropdown").style.display = "block";
-}
-window.showSettings = showSettings;
-
-function showMainMenu() {
-    document.getElementById("settingsDropdown").style.display = "none";
-    document.getElementById("mainDropdown").style.display = "block";
-}
-window.showMainMenu = showMainMenu;
-
-// ==============================
-// SETTINGS TOGGLES
-// ==============================
-function toggleDarkMode() {
-    document.body.classList.toggle("dark-mode");
-    currentUser.darkMode = document.body.classList.contains("dark-mode");
-    document.getElementById("darkModeToggle").classList.toggle("active");
-    saveCurrentState();
-}
-window.toggleDarkMode = toggleDarkMode;
-
-function toggleMyStatus() {
-    currentUser.isOnline = !currentUser.isOnline;
-    document.getElementById("statusToggle").classList.toggle("active");
-    
-    const statusEl = document.getElementById("menuUserStatus");
-    statusEl.textContent = currentUser.isOnline ? "● Online" : "○ Offline";
-    statusEl.style.color = currentUser.isOnline ? "#55efc4" : "#95a5a6";
-    
-    document.getElementById("chatHeaderStatus").className = "status-indicator " + (currentUser.isOnline ? "online" : "offline");
-    document.getElementById("chatHeaderStatusText").textContent = currentUser.isOnline ? "Active Now" : "Offline";
-    
-    saveCurrentState();
-}
-window.toggleMyStatus = toggleMyStatus;
-
-// ==============================
-// CHAT FUNCTIONS
-// ==============================
-// ==============================
+// =====================================
 // SWITCH USER
-// ==============================
-function switchUser(user) {
+// =====================================
+window.switchUser = function (user) {
 
     activeChatUser = user;
 
-    document.querySelector(".chat-header h3").textContent = user.name;
+    document.getElementById("chatHeaderName").textContent =
+        user.name;
 
-    document.getElementById("profileName").textContent = user.name;
+    document.getElementById("chatHeaderAvatar").textContent =
+        user.name.charAt(0).toUpperCase();
+
+    document.getElementById("profileName").textContent =
+        user.name;
 
     document.getElementById("profileBio").textContent =
-        user.bio || "Hey there! I am using Unichat.";
-
-    document.getElementById("chatMessages").innerHTML = "";
+        user.bio || "";
 
     loadMessages();
-}
+};
 
-window.switchUser = switchUser;
-
-// ==============================
+// =====================================
 // CHAT ROOM ID
-// ==============================
+// =====================================
 function getChatRoomId(user1, user2) {
 
     return [user1.email, user2.email]
@@ -347,24 +327,20 @@ function getChatRoomId(user1, user2) {
         .join("_");
 }
 
-// ==============================
+// =====================================
 // SEND MESSAGE
-// ==============================
-f// ==============================
-// SEND MESSAGE
-// ==============================
-async function sendMessage() {
+// =====================================
+window.sendMessage = async function () {
 
-    const input = document.getElementById("messageInput");
+    const input =
+        document.getElementById("messageInput");
 
     const text = input.value.trim();
 
     if (!text || !activeChatUser) return;
 
-    const roomId = getChatRoomId(
-        currentUser,
-        activeChatUser
-    );
+    const roomId =
+        getChatRoomId(currentUser, activeChatUser);
 
     try {
 
@@ -383,37 +359,38 @@ async function sendMessage() {
     } catch (error) {
 
         console.error(error);
-
     }
-}
+};
 
-window.sendMessage = sendMessage;
-
-// ==============================
+// =====================================
 // LOAD MESSAGES
-// ==============================
+// =====================================
 function loadMessages() {
 
-    const roomId = getChatRoomId(
-        currentUser,
-        activeChatUser
-    );
+    if (!activeChatUser) return;
 
-    const messagesRef = query(
+    if (unsubscribeMessages) {
+        unsubscribeMessages();
+    }
+
+    const roomId =
+        getChatRoomId(currentUser, activeChatUser);
+
+    const q = query(
         collection(db, "chats", roomId, "messages"),
         orderBy("createdAt", "asc")
     );
 
-    onSnapshot(messagesRef, (snapshot) => {
+    unsubscribeMessages = onSnapshot(q, (snapshot) => {
 
         const chatBox =
             document.getElementById("chatMessages");
 
         chatBox.innerHTML = "";
 
-        snapshot.forEach((doc) => {
+        snapshot.forEach((docSnap) => {
 
-            const msg = doc.data();
+            const msg = docSnap.data();
 
             const div = document.createElement("div");
 
@@ -435,271 +412,178 @@ function loadMessages() {
     });
 }
 
-function addMessageToUI(text, type) {
-    const container = document.getElementById("chatMessages");
-    const div = document.createElement("div");
-    div.className = "message " + type;
-    div.innerHTML = `
-        <div class="message-content">${text}</div>
-        <div class="timestamp">${new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
-    `;
-    container.appendChild(div);
-    container.scrollTop = container.scrollHeight;
-}
+// =====================================
+// ENTER KEY
+// =====================================
+window.handleKeyPress = function (event) {
 
-function handleKeyPress(event) {
     if (event.key === "Enter") {
+
         event.preventDefault();
+
         sendMessage();
     }
-}
-window.handleKeyPress = handleKeyPress;
+};
 
-// ==============================
-// EMOJI PICKER
-// ==============================
-function toggleEmojiPicker() {
-    document.getElementById("emojiPicker").classList.toggle("active");
-}
-window.toggleEmojiPicker = toggleEmojiPicker;
+// =====================================
+// SEARCH USERS
+// =====================================
+window.filterChat = function (searchText) {
 
-function showEmojiTab(tab) {
-    const content = document.getElementById("emojiContent");
-    const emojis = [
-        "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
-        "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰",
-        "😘", "😗", "😙", "😚", "😋", "😛", "😜", "🤪",
-        "😝", "🤗", "🤭", "🤫", "🤔", "🤐", "🤨", "😐",
-        "😑", "😶", "😏", "😒", "🙄", "😬", "🤥", "😌",
-        "😔", "😪", "🤤", "😴", "😷", "🤒", "🤕", "🤢",
-        "🤮", "🤧", "🥵", "🥶", "🥴", "😵", "🤯", "🤠",
-        "🥳", "😎", "🤓", "🧐", "😕", "😟", "🙁", "☹️"
-    ];
-    
-    if (tab === "emoji") {
-        content.innerHTML = '<div class="emoji-grid">' +
-            emojis.map(e => `<div class="emoji-item" onclick="addEmoji('${e}')">${e}</div>`).join('') +
-            '</div>';
-    } else {
-        content.innerHTML = '<p style="text-align:center;padding:20px;">GIF search coming soon!</p>';
-    }
-}
+    const users =
+        document.querySelectorAll(".user");
 
-function addEmoji(emoji) {
-    const input = document.getElementById("messageInput");
-    input.value += emoji;
-    document.getElementById("emojiPicker").classList.remove("active");
-}
-window.addEmoji = addEmoji;
-window.showEmojiTab = showEmojiTab;
+    users.forEach((user) => {
 
-// Initialize emojis
-showEmojiTab("emoji");
+        const name =
+            user.querySelector("h4")
+                .textContent
+                .toLowerCase();
 
-// ==============================
-// VOICE RECORDING
-// ==============================
-async function startRecording() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-        
-        mediaRecorder.ondataavailable = e => {
-            audioChunks.push(e.data);
-        };
-        
-        mediaRecorder.onstop = () => {
-            const blob = new Blob(audioChunks, { type: "audio/webm" });
-            const url = URL.createObjectURL(blob);
-            
-            const container = document.getElementById("chatMessages");
-            const div = document.createElement("div");
-            div.className = "message sent";
-            div.innerHTML = `<audio controls src="${url}" style="width:200px;"></audio>`;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        };
-        
-        mediaRecorder.start();
-    } catch (error) {
-        alert("Microphone permission denied");
-    }
-}
-window.startRecording = startRecording;
+        if (
+            name.includes(searchText.toLowerCase())
+        ) {
 
-function stopRecording() {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        mediaRecorder.stop();
-    }
-}
-window.stopRecording = stopRecording;
-
-// ==============================
-// IMAGE SEND
-// ==============================
-function sendImage(input) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const container = document.getElementById("chatMessages");
-            const div = document.createElement("div");
-            div.className = "message sent";
-            div.innerHTML = `<img src="${e.target.result}" style="max-width:200px;border-radius:10px;">`;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-window.sendImage = sendImage;
-
-// ==============================
-// CALLS
-// ==============================
-function startAudioCall() {
-    alert("Audio Call Started (Feature coming soon)");
-}
-window.startAudioCall = startAudioCall;
-
-function startVideoCall() {
-    alert("Video Call Started (Feature coming soon)");
-}
-window.startVideoCall = startVideoCall;
-
-// ==============================
-// RIGHT SIDEBAR
-// ==============================
-function toggleRightSidebar() {
-    document.getElementById("rightSidebar").classList.toggle("active");
-}
-window.toggleRightSidebar = toggleRightSidebar;
-
-function openSidebarEditProfile() {
-    document.getElementById("rightSidebar").classList.add("active");
-    document.getElementById("sidebarViewMode").style.display = "none";
-    document.getElementById("sidebarEditMode").style.display = "block";
-    
-    document.getElementById("editSidebarName").value = currentUser.name;
-    document.getElementById("editSidebarBio").value = currentUser.bio;
-}
-window.openSidebarEditProfile = openSidebarEditProfile;
-
-function closeSidebarEditMode() {
-    document.getElementById("sidebarViewMode").style.display = "block";
-    document.getElementById("sidebarEditMode").style.display = "none";
-    document.getElementById("rightSidebar").classList.remove("active");
-}
-window.closeSidebarEditMode = closeSidebarEditMode;
-
-function saveSidebarProfile() {
-    currentUser.name = document.getElementById("editSidebarName").value;
-    currentUser.bio = document.getElementById("editSidebarBio").value;
-    
-    saveCurrentState();
-    applyUserSettings();
-    alert("Profile updated!");
-    closeSidebarEditMode();
-}
-window.saveSidebarProfile = saveSidebarProfile;
-
-function previewProfilePic(event) {
-    if (event.target.files && event.target.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const avatar = document.getElementById("editProfileAvatar");
-            avatar.textContent = "";
-            avatar.style.backgroundImage = `url(${e.target.result})`;
-            avatar.style.backgroundSize = "cover";
-            currentUser.profilePic = e.target.result;
-        };
-        reader.readAsDataURL(event.target.files[0]);
-    }
-}
-window.previewProfilePic = previewProfilePic;
-
-// ==============================
-// BLOCK USER
-// ==============================
-
-// ==============================
-// BLOCK USER
-// ==============================
-// ==============================
-// BLOCK USER - FIXED!
-// ==============================
-function toggleBlockUser() {
-    const blockBtn = document.getElementById("blockBtn");
-    
-    if (blockedUsers.includes(activeChatUser)) {
-        // Unblock
-        blockedUsers = blockedUsers.filter(u => u !== activeChatUser);
-        blockBtn.innerHTML = '<i class="fas fa-ban"></i> Block User';
-        blockBtn.style.background = "#e74c3c";
-        alert("User unblocked!");
-    } else {
-        // Block
-        blockedUsers.push(activeChatUser);
-        blockBtn.innerHTML = '<i class="fas fa-check"></i> Unblock User';
-        blockBtn.style.background = "#27ae60";
-        alert("User blocked!");
-    }
-}
-window.toggleBlockUser = toggleBlockUser;
-
-// ==============================
-// CREATE GROUP
-// ==============================
-function createGroup() {
-    const groupName = prompt("Enter group name:");
-    if (groupName) {
-        const userList = document.getElementById("userList");
-        const newUser = document.createElement("div");
-        newUser.className = "user";
-        newUser.onclick = function() { switchUser(groupName); };
-        newUser.innerHTML = `
-            <div class="avatar-container">
-                <div class="avatar" style="background:#e74c3c;">${groupName.charAt(0)}</div>
-            </div>
-            <div class="user-info">
-                <h4>${groupName}</h4>
-                <p>Group Chat</p>
-            </div>
-        `;
-        userList.appendChild(newUser);
-        alert("Group created: " + groupName);
-    }
-}
-window.createGroup = createGroup;
-
-// ==============================
-// FILTER CHAT
-// ==============================
-function filterChat(searchText) {
-    const users = document.querySelectorAll(".user");
-    users.forEach(user => {
-        const name = user.querySelector("h4").textContent.toLowerCase();
-        if (name.includes(searchText.toLowerCase())) {
             user.style.display = "flex";
+
         } else {
+
             user.style.display = "none";
         }
     });
-}
-window.filterChat = filterChat;
+};
 
-// ==============================
-// INIT
-// ==============================
-document.addEventListener("DOMContentLoaded", () => {
-    applyUserSettings();
-    
-    // Close menus when clicking outside
-    document.addEventListener("click", (e) => {
-        const menu = document.querySelector(".menu-header");
-        if (menu && !menu.contains(e.target)) {
-            document.getElementById("mainDropdown").style.display = "none";
-            document.getElementById("settingsDropdown").style.display = "none";
+// =====================================
+// TOGGLE MENU
+// =====================================
+window.toggleMenu = function () {
+
+    const menu =
+        document.getElementById("mainDropdown");
+
+    menu.style.display =
+        menu.style.display === "block"
+            ? "none"
+            : "block";
+};
+
+// =====================================
+// SETTINGS
+// =====================================
+window.showSettings = function () {
+
+    document.getElementById("mainDropdown").style.display =
+        "none";
+
+    document.getElementById("settingsDropdown").style.display =
+        "block";
+};
+
+window.showMainMenu = function () {
+
+    document.getElementById("settingsDropdown").style.display =
+        "none";
+
+    document.getElementById("mainDropdown").style.display =
+        "block";
+};
+
+// =====================================
+// DARK MODE
+// =====================================
+window.toggleDarkMode = async function () {
+
+    document.body.classList.toggle("dark-mode");
+
+    currentUser.darkMode =
+        document.body.classList.contains("dark-mode");
+
+    await updateDoc(
+        doc(db, "users", currentUser.email),
+        {
+            darkMode: currentUser.darkMode
         }
-    });
+    );
+};
+
+// =====================================
+// RIGHT SIDEBAR
+// =====================================
+window.toggleRightSidebar = function () {
+
+    document.getElementById("rightSidebar")
+        .classList.toggle("active");
+};
+
+// =====================================
+// EMOJI PICKER
+// =====================================
+window.toggleEmojiPicker = function () {
+
+    const picker =
+        document.getElementById("emojiPicker");
+
+    picker.style.display =
+        picker.style.display === "block"
+            ? "none"
+            : "block";
+};
+
+// =====================================
+// SEND IMAGE (LOCAL ONLY)
+// =====================================
+window.sendImage = function (input) {
+
+    if (!input.files[0]) return;
+
+    const reader = new FileReader();
+
+    reader.onload = function (e) {
+
+        const div = document.createElement("div");
+
+        div.className = "message sent";
+
+        div.innerHTML = `
+            <img 
+                src="${e.target.result}" 
+                style="
+                    max-width:200px;
+                    border-radius:10px;
+                "
+            >
+        `;
+
+        document.getElementById("chatMessages")
+            .appendChild(div);
+    };
+
+    reader.readAsDataURL(input.files[0]);
+};
+
+// =====================================
+// AUTH FORM SWITCH
+// =====================================
+document.getElementById("showSignin")
+.addEventListener("click", (e) => {
+
+    e.preventDefault();
+
+    document.getElementById("signupForm")
+        .classList.add("hidden");
+
+    document.getElementById("signinForm")
+        .classList.remove("hidden");
+});
+
+document.getElementById("showSignup")
+.addEventListener("click", (e) => {
+
+    e.preventDefault();
+
+    document.getElementById("signinForm")
+        .classList.add("hidden");
+
+    document.getElementById("signupForm")
+        .classList.remove("hidden");
 });
