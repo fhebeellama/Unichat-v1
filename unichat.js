@@ -48,6 +48,7 @@ let audioChunks = [];
 let activeChatUser = null;
 let blockedUsers = [];
 let unsubscribeUsers = null;
+let unsubscribeMessages = null;
 
 // ==============================
 // LOCAL STORAGE
@@ -294,6 +295,7 @@ async function logout() {
         document.getElementById("signinForm").classList.remove("hidden");
         document.getElementById("signupForm").classList.add("hidden");
         if (unsubscribeUsers) unsubscribeUsers();
+        if (unsubscribeMessages) unsubscribeMessages();
         activeChatUser = null;
     } catch (error) {
         alert(error.message);
@@ -302,23 +304,31 @@ async function logout() {
 window.logout = logout;
 
 // ==============================
-// MENU
+// MENU - FIXED
 // ==============================
 function toggleMenu() {
     const menu = document.getElementById("mainDropdown");
-    menu.style.display = menu.style.display === "block" ? "none" : "block";
+    const settings = document.getElementById("settingsDropdown");
+    
+    // Close settings if open
+    if (!settings.classList.contains("hidden")) {
+        settings.classList.add("hidden");
+    }
+    
+    // Toggle main menu
+    menu.classList.toggle("hidden");
 }
 window.toggleMenu = toggleMenu;
 
 function showSettings() {
-    document.getElementById("mainDropdown").style.display = "none";
-    document.getElementById("settingsDropdown").style.display = "block";
+    document.getElementById("mainDropdown").classList.add("hidden");
+    document.getElementById("settingsDropdown").classList.remove("hidden");
 }
 window.showSettings = showSettings;
 
 function showMainMenu() {
-    document.getElementById("settingsDropdown").style.display = "none";
-    document.getElementById("mainDropdown").style.display = "block";
+    document.getElementById("settingsDropdown").classList.add("hidden");
+    document.getElementById("mainDropdown").classList.remove("hidden");
 }
 window.showMainMenu = showMainMenu;
 
@@ -393,13 +403,16 @@ function getChatRoomId(user1, user2) {
 }
 
 // ==============================
-// SEND MESSAGE
+// SEND MESSAGE - FIXED
 // ==============================
 async function sendMessage() {
     const input = document.getElementById("messageInput");
     const text = input.value.trim();
 
-    if (!text || !activeChatUser) return;
+    if (!text || !activeChatUser) {
+        alert("Select a user and type a message first!");
+        return;
+    }
 
     const roomId = getChatRoomId(currentUser, activeChatUser);
 
@@ -413,16 +426,20 @@ async function sendMessage() {
 
         input.value = "";
     } catch (error) {
-        console.error(error);
+        console.error("Send error:", error);
+        alert("Failed to send message: " + error.message);
     }
 }
 window.sendMessage = sendMessage;
 
 // ==============================
-// LOAD MESSAGES
+// LOAD MESSAGES - FIXED
 // ==============================
 function loadMessages() {
     if (!activeChatUser) return;
+
+    // Unsubscribe from previous chat if exists
+    if (unsubscribeMessages) unsubscribeMessages();
 
     const roomId = getChatRoomId(currentUser, activeChatUser);
 
@@ -431,11 +448,16 @@ function loadMessages() {
         orderBy("createdAt", "asc")
     );
 
-    onSnapshot(messagesRef, (snapshot) => {
+    unsubscribeMessages = onSnapshot(messagesRef, (snapshot) => {
         const chatBox = document.getElementById("chatMessages");
         if (!chatBox) return;
 
         chatBox.innerHTML = "";
+
+        if (snapshot.empty) {
+            chatBox.innerHTML = '<p class="no-messages">No messages yet. Say hi!</p>';
+            return;
+        }
 
         snapshot.forEach((doc) => {
             const msg = doc.data();
@@ -443,9 +465,11 @@ function loadMessages() {
 
             div.className = msg.sender === currentUser.email ? "message sent" : "message received";
 
+            const time = msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Sending...';
+
             div.innerHTML = `
                 <div class="message-content">${msg.text || ''}</div>
-                <span class="timestamp">${msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : ''}</span>
+                <span class="timestamp">${time}</span>
             `;
 
             chatBox.appendChild(div);
@@ -467,7 +491,7 @@ window.handleKeyPress = handleKeyPress;
 // EMOJI PICKER
 // ==============================
 function toggleEmojiPicker() {
-    document.getElementById("emojiPicker").classList.toggle("active");
+    document.getElementById("emojiPicker").classList.toggle("hidden");
 }
 window.toggleEmojiPicker = toggleEmojiPicker;
 
@@ -496,7 +520,7 @@ function showEmojiTab(tab) {
 function addEmoji(emoji) {
     const input = document.getElementById("messageInput");
     input.value += emoji;
-    document.getElementById("emojiPicker").classList.remove("active");
+    document.getElementById("emojiPicker").classList.add("hidden");
 }
 window.addEmoji = addEmoji;
 window.showEmojiTab = showEmojiTab;
@@ -581,8 +605,55 @@ window.startVideoCall = startVideoCall;
 function toggleRightSidebar() {
     const sidebar = document.getElementById("rightSidebar");
     sidebar.classList.toggle("active");
+    
+    // Load current user's profile if opening edit mode
+    if (sidebar.classList.contains("active")) {
+        if (activeChatUser && activeChatUser.email === currentUser.email) {
+            loadMyProfileToSidebar();
+        } else if (activeChatUser) {
+            loadUserProfileToSidebar();
+        }
+    } else {
+        closeSidebarEditMode();
+    }
 }
 window.toggleRightSidebar = toggleRightSidebar;
+
+function loadMyProfileToSidebar() {
+    document.getElementById("sidebarViewMode").classList.remove("hidden");
+    document.getElementById("sidebarEditMode").classList.add("hidden");
+
+    document.getElementById("profileName").textContent = currentUser.name;
+    document.getElementById("profileBio").textContent = currentUser.bio;
+
+    const profileAvatar = document.getElementById("profileAvatar");
+    profileAvatar.textContent = !currentUser.profilePic ? currentUser.name.charAt(0).toUpperCase() : '';
+    profileAvatar.style.backgroundImage = currentUser.profilePic ? `url(${currentUser.profilePic})` : 'none';
+    profileAvatar.style.backgroundSize = "cover";
+    
+    // Hide block button when viewing own profile
+    document.getElementById("blockBtn").classList.add("hidden");
+    // Show edit button
+    document.getElementById("editProfileBtn").classList.remove("hidden");
+}
+
+function loadUserProfileToSidebar() {
+    document.getElementById("sidebarViewMode").classList.remove("hidden");
+    document.getElementById("sidebarEditMode").classList.add("hidden");
+
+    document.getElementById("profileName").textContent = activeChatUser.name;
+    document.getElementById("profileBio").textContent = activeChatUser.bio || "Hey there! I am using Unichat.";
+
+    const profileAvatar = document.getElementById("profileAvatar");
+    profileAvatar.textContent = !activeChatUser.profilePic ? activeChatUser.name.charAt(0).toUpperCase() : '';
+    profileAvatar.style.backgroundImage = activeChatUser.profilePic ? `url(${activeChatUser.profilePic})` : 'none';
+    profileAvatar.style.backgroundSize = "cover";
+    
+    // Show block button when viewing other user
+    document.getElementById("blockBtn").classList.remove("hidden");
+    // Hide edit button
+    document.getElementById("editProfileBtn").classList.add("hidden");
+}
 
 function openSidebarEditProfile() {
     document.getElementById("sidebarViewMode").classList.add("hidden");
@@ -594,6 +665,7 @@ function openSidebarEditProfile() {
     const editAvatar = document.getElementById("editProfileAvatar");
     editAvatar.textContent = !currentUser.profilePic ? currentUser.name.charAt(0).toUpperCase() : '';
     editAvatar.style.backgroundImage = currentUser.profilePic ? `url(${currentUser.profilePic})` : 'none';
+    editAvatar.style.backgroundSize = "cover";
 }
 window.openSidebarEditProfile = openSidebarEditProfile;
 
@@ -607,7 +679,7 @@ function previewProfilePic(event) {
     const reader = new FileReader();
     reader.onload = function(e) {
         const avatar = document.getElementById("editProfileAvatar");
-        avatar.style.backgroundImage = `url(${e.target.result})`;
+        avatar.style.backgroundImage = `url("${e.target.result}")`;
         avatar.style.backgroundSize = "cover";
         avatar.textContent = "";
     };
@@ -646,7 +718,7 @@ async function updateProfileInFirestore() {
         saveCurrentState();
         applyUserSettings();
         closeSidebarEditMode();
-        alert("Profile updated!");
+        alert("Profile updated successfully!");
     } catch (e) {
         alert("Error updating profile");
     }
@@ -709,22 +781,23 @@ window.addEventListener("DOMContentLoaded", () => {
 });
 
 // ==============================
-// CLICK OUTSIDE MENU CLOSE
+// CLICK OUTSIDE MENU CLOSE - FIXED
 // ==============================
 document.addEventListener("click", (e) => {
     const menu = document.getElementById("mainDropdown");
     const settings = document.getElementById("settingsDropdown");
     const menuBtn = document.querySelector(".menu-header");
     
-    if (!menuBtn.contains(e.target)) {
-        menu.style.display = "none";
-        settings.style.display = "none";
+    // Close menu when clicking outside
+    if (!menuBtn.contains(e.target) && !menu.contains(e.target)) {
+        menu.classList.add("hidden");
+        settings.classList.add("hidden");
     }
 
     const emojiPicker = document.getElementById("emojiPicker");
     const emojiBtn = document.querySelector(".icon-btn[onclick='toggleEmojiPicker()']");
     
-    if (emojiPicker.classList.contains("active") && !emojiPicker.contains(e.target) && !emojiBtn.contains(e.target)) {
-        emojiPicker.classList.remove("active");
+    if (emojiPicker && !emojiPicker.classList.contains("hidden") && !emojiPicker.contains(e.target) && !emojiBtn.contains(e.target)) {
+        emojiPicker.classList.add("hidden");
     }
 });
