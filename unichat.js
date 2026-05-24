@@ -419,20 +419,22 @@ onAuthStateChanged(auth, (user) => {
 // ==============================
 
 function toggleMenu() {
-    const mainDropdown = document.getElementById('mainDropdown');
-    const settingsDropdown = document.getElementById('settingsDropdown');
-
-    if (!mainDropdown) return;
-
-    // Close settings menu first
-    settingsDropdown.style.display = 'none';
-
-    if (mainDropdown.style.display === 'block') {
-        mainDropdown.style.display = 'none';
+    const dropdown = document.getElementById('mainDropdown');
+    if (dropdown.style.display === 'none' || dropdown.style.display === '') {
+        dropdown.style.display = 'block';
     } else {
-        mainDropdown.style.display = 'block';
+        dropdown.style.display = 'none';
     }
 }
+
+document.addEventListener('click', function(e) {
+    const menuHeader = document.querySelector('.menu-header');
+    if (!menuHeader.contains(e.target)) {
+        document.getElementById('mainDropdown').style.display = 'none';
+        document.getElementById('settingsDropdown').style.display = 'none';
+        document.getElementById('editProfileDropdown').style.display = 'none';
+    }
+});
 
 function showSettings() {
     document.getElementById('mainDropdown').style.display = 'none';
@@ -441,8 +443,10 @@ function showSettings() {
 
 function showMainMenu() {
     document.getElementById('settingsDropdown').style.display = 'none';
+    document.getElementById('editProfileDropdown').style.display = 'none';
     document.getElementById('mainDropdown').style.display = 'block';
 }
+
 
 // Close dropdown if clicked outside
 document.addEventListener('click', (e) => {
@@ -464,38 +468,53 @@ document.addEventListener('click', (e) => {
 
 function toggleStatus() {
     const toggle = document.getElementById('statusToggle');
-    if (!toggle) return;
-
     toggle.classList.toggle('active');
+    
     currentUser.isOnline = toggle.classList.contains('active');
+    
+    document.querySelector('.profile-status').textContent = 
+        currentUser.isOnline ? '● Online' : '○ Offline';
 
-    // Update the profile status text
-    const profileStatus = document.querySelector('.profile-status');
-    if (profileStatus) {
-        profileStatus.textContent = currentUser.isOnline
-            ? '● Online'
-            : '○ Offline';
-        
-        // Update color based on status
-        profileStatus.style.color = currentUser.isOnline
-            ? '#55efc4'
-            : '#95a5a6';
-    }
-
-    // Update the status indicator in the header avatar
-    const headerStatus = document.querySelector('.header .status-indicator');
-    if (headerStatus) {
-        if (currentUser.isOnline) {
-            headerStatus.classList.add('online');
-            headerStatus.classList.remove('offline');
-        } else {
-            headerStatus.classList.add('offline');
-            headerStatus.classList.remove('online');
-        }
-    }
-
+    updateSidebarIndicators();
+    updateChatHeaderIndicators();
     saveCurrentState();
 }
+function toggleRightSidebar() {
+    const sidebar = document.getElementById('rightSidebar');
+    if (sidebar.classList.contains('active')) {
+        sidebar.classList.remove('active');
+    } else {
+        sidebar.classList.add('active');
+    }
+    saveCurrentState();
+}
+function updateSidebarIndicators() {
+    const indicators = document.querySelectorAll('.user .status-indicator');
+    indicators.forEach(indicator => {
+        if (currentUser.isOnline) {
+            indicator.classList.add('online');
+            indicator.classList.remove('hidden');
+        } else {
+            indicator.classList.remove('online');
+            indicator.classList.add('hidden');
+        }
+    });
+    saveCurrentState();
+}
+function updateChatHeaderIndicators() {
+    const indicators = document.querySelectorAll('.avatar-container .status-indicator');
+    indicators.forEach(indicator => {
+        if (currentUser.isOnline) {
+            indicator.classList.add('online');
+            indicator.classList.remove('hidden');
+        } else {
+            indicator.classList.remove('online');
+            indicator.classList.add('hidden');
+        }
+    });
+   saveCurrentState(); 
+}
+
 // ==============================
 // DARK MODE
 // ==============================
@@ -531,61 +550,185 @@ function toggleRightSidebar() {
 // EMOJI PICKER
 // ==============================
 
-const emojis = [
-    '😀', '😂', '😍', '😎', '😭',
-    '🔥', '❤️', '👍', '🎉', '😅',
-    '🥳', '🤖', '😡', '😴', '💯',
-    '✨', '😇', '🙌', '😜', '🤩'
-];
+const emojiCategories = {
+   smileys: ['😀', '😃', '😄', '😁', '😆', '😅', '😂', '🤣', '😊', '😇', '🙂', '😉', '😌', '😍', '🥰', '😘', '😗', '😙', '😚', '😋', '😛', '😜', '🤪', '😝', '🤑', '🤗', '🤭', '🤫', '🤔', '🤐', '🤨', '😐', '😑', '😶', '😏', '😒', '🙄', '😬', '🤥', '😌', '😔', '😪', '🤤', '😴', '😷', '🤒', '🤕'],
+    gestures: ['👋', '💪', '👍', '👌', '✌', '🤞', '🤟', '🤘', '🤙', '👈', '👉', '👆', '👇', '✋', '🤚', '🖐', '🖖', '👋', '💅', '🤳', '💍', '💎', '🤝', '🙏', '🙌', '👏', '👐', '🤲', '🗯', '💢', '😤', '😠', '😡', '🤬'],
+    hearts: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '💟', '♥️', '♦️', '♣️', '♠️', '☮️', '✝️', '☪️', '🕉', '☸️', '✡️', '🔯', '🕎', '☯', '☦️', '🛐', '⛎', '♈', '♉', '♊'],
+    nature: ['🐶', '🐱', '🐭', '🐹', '🐰', '🦊', '🐻', '🐼', '🐨', '🐯', '🦁', '🐮', '🐷', '🐸', '🐵', '🐔', '🐧', '🐦', '🐤', '🦆', '🦅', '🦉', '🦇', '🐺', '🐗', '🐴', '🦄', '🐝', '🐛', '🦋', '🐌', '🐞', '🐜', '🦟', '🦗', '🌸', '💐', '🌹', '🥀', '🌺', '🌻', '🌼', '🏵️'],
+    food: ['🍎', '🍐', '🍊', '🍋', '🍌', '🍉', '🍇', '🍓', '🍈', '🍒', '🍑', '🥭', '🍍', '🥥', '🥝', '🍅', '🍆', '🥑', '🥦', '🥬', '🥒', '🌶', '🌽', '🥕', '🧄', '🧅', '🥔', '🍠', '🥐', '🥯', '🍞', '🥖', '🥨', '🧀', '🥚', '🍳', '🧈', '🥞', '🥓', '🥩', '🍗', '🍖', '🌭', '🍔', '🍟', '🍕'],
+    activities: ['⚽', '🏀', '🏈', '⚾', '🥎', '🎾', '🏐', '🏉', '🥏', '🎱', '🪀', '🏓', '🏸', '🏒', '🏑', '🥍', '🏏', '🥅', '⛳', '🪁', '🏹', '🎣', '🤿', '🥊', '🥋', '🎽', '🎿', '🛷', '🥌', '🎯', '🪀', '🎮', '🎰', '🧩', '♟️', '🎲', '🎭', '🎨', '🎬', '🎤', '🎧', '🎼', '🎹', '🥁', '🎷', '🎺'],
+    objects: ['⌚', '📱', '📲', '💻', '⌨️', '🖥', '🖨', '🖱', '🖲', '🕹', '🗜', '💽', '💾', '💿', '📀', '📼', '📷', '📸', '📹', '🎥', '📽', '🎞', '📞', '☎️', '📟', '📠', '📺', '📻', '🎙', '🎚', '🎛', '🧭', '⏱', '⏲', '⏰', '🕰', '⌛', '⏳', '📡', '🔋', '🔌', '💡', '🔦', '🕯', '🪔', '🧯'],
+    symbols: ['❤️', '🧡', '💛', '💚', '💙', '💜', '🖤', '🤍', '🤎', '💔', '❣', '💕', '💞', '💓', '💗', '💖', '💘', '💝', '✅', '❌', '💯', '❗', '❕', '❓', '❔', '‼️', '⁉️', '🔴', '🟠', '🟡', '🟢', '🔵', '🟣', '⚫', '⚪', '🟤', '🔶', '🔷', '🔸', '🔹', '💠', '🔘', '🔳', '🔲', '▪️', '▫️']
+};
 
-function addEmoji() {
-    const picker = document.getElementById('emojiPicker');
+const GIPHY_API_KEY = 'YOUR_GIPHY_API_KEY'; // Get free key at https://developers.giphy.com/
+const TENOR_API_KEY = 'YOUR_TENOR_API_KEY'; // Get free key at https://tenor.com/developer/keyregistration
 
-    if (!picker) return;
-
-    picker.classList.toggle('active');
-
-    const grid = document.getElementById('emojiGrid');
-
-    if (!grid) return;
-
-    // Prevent duplicate emojis
-    if (grid.innerHTML !== '') return;
-
-    emojis.forEach((emoji) => {
-        const span = document.createElement('span');
-
-        span.textContent = emoji;
-        span.classList.add('emoji-item');
-
-        span.addEventListener('click', () => {
-            const input = document.getElementById('messageInput');
-
-            input.value += emoji;
-            input.focus();
+// Load emojis to grid
+function loadEmojis() {
+    const emojiGrid = document.getElementById('emojiGrid');
+    emojiGrid.innerHTML = '';
+    
+    for (const category in emojiCategories) {
+        emojiCategories[category].forEach(emoji => {
+            const span = document.createElement('span');
+            span.className = 'emoji-item';
+            span.textContent = emoji;
+            span.onclick = () => insertEmoji(emoji);
+            emojiGrid.appendChild(span);
         });
-
-        grid.appendChild(span);
-    });
-}
-
-function showEmojiTab(tab) {
-    const emojiTab = document.getElementById('emojiTab');
-    const gifTab = document.getElementById('gifTab');
-
-    if (tab === 'emoji') {
-        emojiTab.classList.add('active');
-        gifTab.classList.remove('active');
-    } else {
-        gifTab.classList.add('active');
-        emojiTab.classList.remove('active');
     }
 }
 
-function searchEmojiGif(value) {
-    console.log("Searching:", value);
+// Toggle emoji picker
+function toggleEmojiPicker() {
+    const picker = document.getElementById('emojiPicker');
+    picker.classList.toggle('active');
+    
+    if (picker.classList.contains('active')) {
+        loadEmojis();
+        loadTrendingGifs();
+    }
 }
 
+// Show emoji or GIF tab
+function showEmojiTab(tab) {
+    const buttons = document.querySelectorAll('.emoji-tab-btn');
+    buttons.forEach(btn => btn.classList.remove('active'));
+    
+    const contents = document.querySelectorAll('.emoji-category');
+    contents.forEach(content => content.classList.remove('active'));
+    
+    if (tab === 'emoji') {
+        buttons[0].classList.add('active');
+        document.getElementById('emojiTab').classList.add('active');
+    } else {
+        buttons[1].classList.add('active');
+        document.getElementById('gifTab').classList.add('active');
+    }
+}
+
+// Insert emoji into input
+function insertEmoji(emoji) {
+    const input = document.getElementById('messageInput');
+    input.value += emoji;
+    input.focus();
+}
+
+// Load trending GIFs from Tenor (free, no API key needed for basic usage)
+async function loadTrendingGifs() {
+    const gifGrid = document.getElementById('gifGrid');
+    gifGrid.innerHTML = '<div style="grid-column: span 2; text-align: center; padding: 20px;">Loading GIFs...</div>';
+    
+    try {
+        // Using Tenor API (free, no key required for basic)
+        const response = await fetch('https://tenor.googleapis.com/v2/featured?key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&limit=20');
+        const data = await response.json();
+        
+        gifGrid.innerHTML = '';
+        
+        data.results.forEach(result => {
+            const gifUrl = result.media_formats.gif.url;
+            const div = document.createElement('div');
+            div.className = 'gif-item';
+            div.onclick = () => sendGif(gifUrl);
+            
+            const img = document.createElement('img');
+            img.src = gifUrl;
+            
+            div.appendChild(img);
+            gifGrid.appendChild(div);
+        });
+    } catch (error) {
+        gifGrid.innerHTML = '<div style="grid-column: span 2; text-align: center; padding: 20px; color: red;">Failed to load GIFs</div>';
+        console.error('GIF loading error:', error);
+    }
+}
+
+// Send GIF as message
+function sendGif(gifUrl) {
+    const messagesContainer = document.querySelector('.chat-messages');
+    const placeholder = messagesContainer.querySelector('p');
+    if (placeholder) placeholder.remove();
+    
+    const messageDiv = document.createElement('div');
+    messageDiv.classList.add('message', 'sent');
+    
+    const img = document.createElement('img');
+    img.src = gifUrl;
+    img.style.maxWidth = '200px';
+    img.style.borderRadius = '15px';
+    
+    const timeSpan = document.createElement('span');
+    timeSpan.classList.add('timestamp');
+    timeSpan.textContent = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    
+    messageDiv.appendChild(img);
+    messageDiv.appendChild(timeSpan);
+    
+    messagesContainer.appendChild(messageDiv);
+    messagesContainer.scrollTop = messagesContainer.scrollHeight;
+    
+    // Close picker
+    document.getElementById('emojiPicker').classList.remove('active');
+}
+
+// Search emoji or GIF
+async function searchEmojiGif(query) {
+    if (!query) {
+        loadEmojis();
+        return;
+    }
+    
+    const emojiGrid = document.getElementById('emojiGrid');
+    emojiGrid.innerHTML = '';
+    
+    // Search local emojis
+    for (const category in emojiCategories) {
+        emojiCategories[category].forEach(emoji => {
+            if (emoji.includes(query)) {
+                const span = document.createElement('span');
+                span.className = 'emoji-item';
+                span.textContent = emoji;
+                span.onclick = () => insertEmoji(emoji);
+                emojiGrid.appendChild(span);
+            }
+        });
+    }
+    
+    // If more than 5 characters, search GIFs
+    if (query.length > 2) {
+        const gifGrid = document.getElementById('gifGrid');
+        gifGrid.innerHTML = '<div style="grid-column: span 2; text-align: center; padding: 20px;">Searching GIFs...</div>';
+        
+        try {
+            const response = await fetch(`https://tenor.googleapis.com/v2/search?key=AIzaSyAyimkuYQYF_FXVALexPuGQctUWRURdCYQ&q=${query}&limit=20`);
+            const data = await response.json();
+            
+            gifGrid.innerHTML = '';
+            
+            data.results.forEach(result => {
+                const gifUrl = result.media_formats.gif.url;
+                const div = document.createElement('div');
+                div.className = 'gif-item';
+                div.onclick = () => sendGif(gifUrl);
+                
+                const img = document.createElement('img');
+                img.src = gifUrl;
+                
+                div.appendChild(img);
+                gifGrid.appendChild(div);
+            });
+        } catch (error) {
+            gifGrid.innerHTML = '';
+        }
+    }
+}
+
+// Update the old addEmoji function
+function addEmoji() {
+    toggleEmojiPicker();
+}
 // ==============================
 // SEND MESSAGE
 // ==============================
