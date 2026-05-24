@@ -1,0 +1,582 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Unichat Messenger</title>
+
+    <!-- CSS -->
+    <link rel="stylesheet" href="unichat.css">
+
+    <!-- Font Awesome -->
+    <link rel="stylesheet"
+        href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+</head>
+
+<body>
+
+    <!-- ========================= -->
+    <!-- SPLASH SCREEN -->
+    <!-- ========================= -->
+    <div id="splashScreen" class="splash-overlay">
+        <h1>💬 Welcome to Unichat</h1>
+        <p>Tap anywhere to continue</p>
+    </div>
+
+    <!-- ========================= -->
+    <!-- AUTH CONTAINER -->
+    <!-- ========================= -->
+    <div class="auth-container hidden">
+
+        <!-- SIGNUP -->
+        <div id="signupForm" class="auth-form">
+
+            <h2>Create Account</h2>
+
+            <form id="signupFormElement">
+
+                <div class="form-group">
+                    <label>Complete Name</label>
+                    <input type="text" id="signupName" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Username</label>
+                    <input type="text" id="signupUsername" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email" id="signupGmail" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password" id="signupPassword" required>
+                </div>
+
+                <div class="form-group">
+                    <label>Confirm Password</label>
+                    <input type="password"
+                        id="signupConfirmPassword"
+                        required>
+
+                    <small class="password-note">
+                        Password must be 8+ characters
+                    </small>
+                </div>
+
+                <button type="submit" class="btn">
+                    Create Account
+                </button>
+
+            </form>
+
+            <div class="switch-auth">
+                Already have an account?
+                <a href="#" id="showSignin">Sign In</a>
+            </div>
+
+        </div>
+
+        <!-- SIGNIN -->
+        <div id="signinForm" class="auth-form hidden">
+
+            <h2>Sign In</h2>
+
+            <form id="signinFormElement">
+
+                <div class="form-group">
+                    <label>Email</label>
+                    <input type="email"
+                        id="signinUsername"
+                        required>
+                </div>
+
+                <div class="form-group">
+                    <label>Password</label>
+                    <input type="password"
+                        id="signinPassword"
+                        required>
+                </div>
+
+                <button type="submit" class="btn">
+                    Sign In
+                </button>
+
+            </form>
+
+            <div class="switch-auth">
+                Don't have an account?
+                <a href="#" id="showSignup">Sign Up</a>
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ========================= -->
+    <!-- DASHBOARD -->
+    <!-- ========================= -->
+    <div id="dashboard"
+        class="dashboard"
+        style="display:none;">
+
+        <!-- HEADER -->
+        <header class="header">
+
+            <div class="logo">
+                💬 UNICHAT
+            </div>
+
+            <div class="menu-header">
+
+                <button type="button"
+                    id="headermenu"
+                    class="menu-btn"
+                    onclick="toggleMenu()">
+
+                    ☰ Menu
+                </button>
+
+                <!-- MAIN MENU -->
+                <div id="mainDropdown"
+                    class="dropdown-menu hidden">
+
+                    <div class="profile-section">
+
+                        <div class="profile-avatar"
+                            id="menuAvatar">
+                            U
+                        </div>
+
+                        <div class="profile-name"
+                            id="menuUserName">
+                            User
+                        </div>
+
+                        <div class="profile-status">
+                            ● Online
+                        </div>
+
+                    </div>
+
+                    <div class="menu-item"
+                        onclick="showSettings()">
+
+                        <i class="fas fa-cog"></i>
+                        Settings
+                    </div>
+
+                    <div class="menu-item logout-btn"
+                        onclick="logout()">
+
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
+                    </div>
+
+                </div>
+
+                <!-- SETTINGS -->
+                <div id="settingsDropdown"
+                    class="dropdown-menu hidden">
+
+                    <div class="menu-item"
+                        onclick="showMainMenu()">
+
+                        <i class="fas fa-arrow-left"></i>
+                        Back
+                    </div>
+
+                    <div class="menu-item"
+                        onclick="toggleStatus()">
+
+                        <i class="fas fa-circle"></i>
+                        Active Status
+
+                        <div class="toggle-switch active"
+                            id="statusToggle">
+                        </div>
+
+                    </div>
+
+                    <div class="menu-item"
+                        onclick="toggleDarkMode()">
+
+                        <i class="fas fa-moon"></i>
+                        Dark Mode
+
+                        <div class="toggle-switch"
+                            id="darkModeToggle">
+                        </div>
+
+                    </div>
+
+                    <div class="menu-item"
+                        onclick="openSidebarEditProfile()">
+
+                        <i class="fas fa-user-edit"></i>
+                        Edit Profile
+                    </div>
+
+                </div>
+
+            </div>
+
+        </header>
+
+        <!-- CHAT APP -->
+        <div class="chat-app">
+
+            <!-- SIDEBAR -->
+            <div class="sidebar">
+
+                <div class="header">
+                    <h3>Chats</h3>
+                </div>
+
+                <div class="search-bar">
+                    <input type="text"
+                        placeholder="Search...">
+                </div>
+
+                <div class="user-list">
+
+                    <div class="user active"
+                        onclick="switchUser('Bot')">
+
+                        <div class="avatar">
+                            B
+                            <span class="status-indicator online"></span>
+                        </div>
+
+                        <div class="user-info">
+                            <h4>Chat Bot</h4>
+                            <p>Auto reply bot</p>
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- CHAT AREA -->
+            <div class="chat-area">
+
+                <!-- CHAT HEADER -->
+                <div class="chat-header">
+
+                    <div class="user-profile"
+                        onclick="toggleRightSidebar()">
+
+                        <div class="avatar-container">
+
+                            <div class="avatar">
+                                B
+                            </div>
+
+                            <span class="status-indicator online"></span>
+
+                        </div>
+
+                        <h3>Chat Bot</h3>
+
+                    </div>
+
+                    <div class="header-actions">
+
+                        <button type="button"
+                            class="call-btn audio"
+                            onclick="startAudioCall()">
+
+                            <i class="fas fa-phone"></i>
+                        </button>
+
+                        <button type="button"
+                            class="call-btn video"
+                            onclick="startVideoCall()">
+
+                            <i class="fas fa-video"></i>
+                        </button>
+
+                    </div>
+
+                </div>
+
+                <!-- MESSAGES -->
+                <div class="chat-messages">
+                    <p>Messages appear here...</p>
+                </div>
+
+                <!-- INPUT -->
+                <div class="input-area">
+
+                    <div class="icons">
+
+                        <label for="imageInput"
+                            class="icon-btn">
+
+                            <i class="far fa-image"></i>
+                        </label>
+
+                        <input type="file"
+                            id="imageInput"
+                            accept="image/*"
+                            hidden>
+
+                        <button type="button"
+                            class="icon-btn"
+                            onclick="addEmoji()">
+
+                            😊
+                        </button>
+
+                        <button type="button"
+                            id="micBtn"
+                            class="icon-btn"
+                            onmousedown="startRecording()"
+                            onmouseup="stopRecording()">
+
+                            <i class="fas fa-microphone"></i>
+                        </button>
+
+                    </div>
+
+                    <input type="text"
+                        id="messageInput"
+                        placeholder="Type a message..."
+                        onkeypress="handleKeyPress(event)">
+
+                    <button type="button"
+                        class="send-btn"
+                        onclick="sendMessage()">
+
+                        <i class="fas fa-paper-plane"></i>
+                    </button>
+
+                </div>
+
+                <!-- EMOJI PICKER -->
+                <div id="emojiPicker"
+                    class="emoji-picker hidden">
+
+                    <div class="emoji-picker-header">
+
+                        <button type="button"
+                            class="emoji-tab-btn active"
+                            onclick="showEmojiTab('emoji')">
+
+                            😀 Emoji
+                        </button>
+
+                        <button type="button"
+                            class="emoji-tab-btn"
+                            onclick="showEmojiTab('gif')">
+
+                            GIF
+                        </button>
+
+                    </div>
+
+                    <div class="emoji-search">
+
+                        <input type="text"
+                            id="emojiSearch"
+                            placeholder="Search..."
+                            onkeyup="searchEmojiGif(this.value)">
+
+                    </div>
+
+                    <div class="emoji-content">
+
+                        <div id="emojiTab"
+                            class="emoji-category active">
+
+                            <div class="emoji-grid"
+                                id="emojiGrid">
+                            </div>
+
+                        </div>
+
+                        <div id="gifTab"
+                            class="emoji-category">
+
+                            <div class="gif-grid"
+                                id="gifGrid">
+                            </div>
+
+                        </div>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+            <!-- RIGHT SIDEBAR -->
+            <div class="right-sidebar"
+                id="rightSidebar">
+
+                <!-- VIEW MODE -->
+                <div id="sidebarViewMode">
+
+                    <div class="right-sidebar-header">
+
+                        <h3>Profile</h3>
+
+                        <button type="button"
+                            class="close-sidebar"
+                            onclick="toggleRightSidebar()">
+
+                            <i class="fas fa-times"></i>
+                        </button>
+
+                    </div>
+
+                    <div class="profile-content">
+
+                        <div class="profile-avatar-large">
+
+                            <div class="avatar"
+                                id="profileAvatar">
+
+                                U
+                            </div>
+
+                        </div>
+
+                        <h2 id="profileName">
+                            User
+                        </h2>
+
+                        <p id="profileBio">
+                            Hey there! I am using Unichat.
+                        </p>
+
+                    </div>
+
+                </div>
+
+                <!-- EDIT MODE -->
+                <div id="sidebarEditMode"
+                    style="display:none;">
+
+                    <div class="right-sidebar-header">
+
+                        <h3>Edit Profile</h3>
+
+                        <button type="button"
+                            class="close-sidebar"
+                            onclick="closeSidebarEditMode()">
+
+                            <i class="fas fa-times"></i>
+                        </button>
+
+                    </div>
+
+                    <div class="profile-content">
+
+                        <label for="editProfilePic">
+
+                            <div class="avatar"
+                                id="editProfileAvatar">
+
+                                U
+                            </div>
+
+                        </label>
+
+                        <input type="file"
+                            id="editProfilePic"
+                            accept="image/*"
+                            hidden
+                            onchange="previewProfilePic(event)">
+
+                        <div class="form-group">
+
+                            <label>Name</label>
+
+                            <input type="text"
+                                id="editSidebarName">
+
+                        </div>
+
+                        <div class="form-group">
+
+                            <label>Username</label>
+
+                            <input type="text"
+                                id="editSidebarUsername">
+
+                        </div>
+
+                        <div class="form-group">
+
+                            <label>Bio</label>
+
+                            <textarea id="editSidebarBio"></textarea>
+
+                        </div>
+
+                        <button type="button"
+                            class="btn"
+                            onclick="saveSidebarProfile()">
+
+                            Save Changes
+                        </button>
+
+                    </div>
+
+                </div>
+
+            </div>
+
+        </div>
+
+    </div>
+
+    <!-- ========================= -->
+    <!-- SIGN IN / SIGN UP SWITCH -->
+    <!-- ========================= -->
+    <script>
+
+        document
+            .getElementById('showSignin')
+            .addEventListener('click', function(e) {
+
+                e.preventDefault();
+
+                document
+                    .getElementById('signupForm')
+                    .classList.add('hidden');
+
+                document
+                    .getElementById('signinForm')
+                    .classList.remove('hidden');
+            });
+
+        document
+            .getElementById('showSignup')
+            .addEventListener('click', function(e) {
+
+                e.preventDefault();
+
+                document
+                    .getElementById('signinForm')
+                    .classList.add('hidden');
+
+                document
+                    .getElementById('signupForm')
+                    .classList.remove('hidden');
+            });
+
+    </script>
+
+    <!-- ========================= -->
+    <!-- MAIN JS -->
+    <!-- ========================= -->
+    <script type="module" src="unichat.js"></script>
+
+</body>
+</html>
