@@ -533,6 +533,43 @@ document.addEventListener('DOMContentLoaded', () => {
     applyUserSettings();
 });
 
+// ==============================
+// INIT
+// ==============================
+document.addEventListener('DOMContentLoaded', () => {
+
+    loadSavedState();
+    loadChatMessages();
+    applyUserSettings();
+
+    // START SPLASH SCREEN
+    const splash = document.getElementById('splashScreen');
+
+    if (splash) {
+
+        // Tap anywhere on splash
+        splash.addEventListener('click', () => {
+            startApp();
+        });
+
+    }
+
+});
+
+function toggleMenu() {}
+function showSettings() {}
+function showMainMenu() {}
+function toggleStatus() {}
+function openSidebarEditProfile() {}
+function toggleRightSidebar() {}
+function addEmoji() {}
+function switchUser() {}
+function searchEmojiGif() {}
+function showEmojiTab() {}
+function previewProfilePic() {}
+function saveSidebarProfile() {}
+function closeSidebarEditMode() {}
+
 window.startApp = startApp;
 window.toggleMenu = toggleMenu;
 window.showSettings = showSettings;
@@ -554,4 +591,4 @@ window.showEmojiTab = showEmojiTab;
 window.previewProfilePic = previewProfilePic;
 window.saveSidebarProfile = saveSidebarProfile;
 window.closeSidebarEditMode = closeSidebarEditMode;
-window.logout = logout;v
+window.logout = logout;
