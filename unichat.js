@@ -10,8 +10,13 @@ const firebaseConfig = {
     appId: "1:1014572806433:web:d496a60f3011993217ce60"
 };
 
-// Initialize Firebase
-firebase.initializeApp(firebaseConfig);
+// ============================================
+// INITIALIZE FIREBASE
+// ============================================
+if (!firebase.apps.length) {
+    firebase.initializeApp(firebaseConfig);
+}
+
 const auth = firebase.auth();
 const db = firebase.database();
 const storage = firebase.storage();
@@ -22,40 +27,76 @@ const storage = firebase.storage();
 let currentUser = null;
 let currentUserData = null;
 let activeChatUser = null;
+
 let darkMode = localStorage.getItem('unichat_dark') === 'true';
 let activeStatus = true;
-let messagesListener = null;
-let userListListener = null;
+
+// ============================================
+// HELPER FUNCTIONS
+// ============================================
+function $(id) {
+    return document.getElementById(id);
+}
+
+function addListener(id, event, callback) {
+    const el = $(id);
+
+    if (el) {
+        el.addEventListener(event, callback);
+    }
+}
 
 // ============================================
 // INITIALIZATION
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
+
+    // Dark Mode
     if (darkMode) {
         document.body.classList.add('dark-mode');
-        document.getElementById('darkModeToggle').classList.add('active');
+
+        if ($('darkModeToggle')) {
+            $('darkModeToggle').classList.add('active');
+        }
     }
 
-    // Splash screen click — NOW WORKS
-    document.getElementById('splashScreen').addEventListener('click', () => {
-        document.getElementById('splashScreen').classList.add('hidden');
-        document.querySelector('.auth-container').classList.remove('hidden');
+    // Splash Screen
+    addListener('splashScreen', 'click', () => {
+        $('splashScreen').classList.add('hidden');
+
+        const authContainer = document.querySelector('.auth-container');
+
+        if (authContainer) {
+            authContainer.classList.remove('hidden');
+        }
     });
 
     setupAuthForms();
     setupEventListeners();
+    loadEmojis();
 
-    // ✅ FIXED Auth state listener — splash no longer blocks screen
-    auth.onAuthStateChanged(user => {
-        // Always hide splash first
-        document.getElementById('splashScreen').classList.add('hidden');
+    // Auth Listener
+    auth.onAuthStateChanged((user) => {
+
+        if ($('splashScreen')) {
+            $('splashScreen').classList.add('hidden');
+        }
 
         if (user) {
-            // Already logged in → go straight to app
+
             enterApp(user);
+
         } else {
-            // Not logged in → show login/register
-            document.querySelector('.auth-container').classList.remove('hidden');
+
+            const authContainer = document.querySelector('.auth-container');
+
+            if (authContainer) {
+                authContainer.classList.remove('hidden');
+            }
+
+            if ($('dashboard')) {
+                $('dashboard').style.display = 'none';
+            }
         }
     });
 });
@@ -64,95 +105,147 @@ document.addEventListener('DOMContentLoaded', () => {
 // AUTH FORMS
 // ============================================
 function setupAuthForms() {
-    document.getElementById('showSignin').addEventListener('click', (e) => {
+
+    addListener('showSignin', 'click', (e) => {
         e.preventDefault();
-        document.getElementById('signupForm').classList.add('hidden');
-        document.getElementById('signinForm').classList.remove('hidden');
+
+        $('signupForm').classList.add('hidden');
+        $('signinForm').classList.remove('hidden');
     });
 
-    document.getElementById('showSignup').addEventListener('click', (e) => {
+    addListener('showSignup', 'click', (e) => {
         e.preventDefault();
-        document.getElementById('signinForm').classList.add('hidden');
-        document.getElementById('signupForm').classList.remove('hidden');
+
+        $('signinForm').classList.add('hidden');
+        $('signupForm').classList.remove('hidden');
     });
 
-    // Sign Up
-    document.getElementById('signupFormElement').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const name = document.getElementById('signupName').value.trim();
-        const email = document.getElementById('signupEmail').value.trim();
-        const password = document.getElementById('signupPassword').value;
-        const confirm = document.getElementById('signupConfirmPassword').value;
+    // SIGN UP
+    const signupForm = $('signupFormElement');
 
-        if (!name) return alert('Please enter your name');
-        if (password !== confirm) return alert('Passwords do not match!');
-        if (password.length < 6) return alert('Password must be at least 6 characters');
+    if (signupForm) {
 
-        try {
-            const btn = document.querySelector('#signupFormElement .btn');
-            btn.textContent = 'Creating...';
-            btn.disabled = true;
+        signupForm.addEventListener('submit', async (e) => {
 
-            const userCred = await auth.createUserWithEmailAndPassword(email, password);
-            const uid = userCred.user.uid;
+            e.preventDefault();
 
-            await db.ref('users/' + uid).set({
-                uid: uid,
-                name: name,
-                email: email,
-                bio: 'Hey there! I am using Unichat.',
-                pic: 'https://i.pravatar.cc/150?u=' + uid,
-                status: 'online',
-                createdAt: Date.now()
-            });
+            const name = $('signupName').value.trim();
+            const email = $('signupEmail').value.trim();
+            const password = $('signupPassword').value;
+            const confirm = $('signupConfirmPassword').value;
 
-            btn.textContent = 'Create Account';
-            btn.disabled = false;
-        } catch (err) {
-            alert(err.message);
-            const btn = document.querySelector('#signupFormElement .btn');
-            btn.textContent = 'Create Account';
-            btn.disabled = false;
-        }
-    });
+            if (!name) {
+                alert('Please enter your name');
+                return;
+            }
 
-    // Sign In
-    document.getElementById('signinFormElement').addEventListener('submit', async (e) => {
-        e.preventDefault();
-        const email = document.getElementById('signinEmail').value.trim();
-        const password = document.getElementById('signinPassword').value;
+            if (password !== confirm) {
+                alert('Passwords do not match');
+                return;
+            }
 
-        if (!email || !password) return alert('Please enter email and password');
+            if (password.length < 6) {
+                alert('Password must be at least 6 characters');
+                return;
+            }
 
-        try {
-            const btn = document.querySelector('#signinFormElement .btn');
-            btn.textContent = 'Signing in...';
-            btn.disabled = true;
+            const btn = signupForm.querySelector('.btn');
 
-            const userCred = await auth.signInWithEmailAndPassword(email, password);
-            await db.ref('users/' + userCred.user.uid).update({ status: 'online' });
+            try {
 
-            btn.textContent = 'Sign In';
-            btn.disabled = false;
-        } catch (err) {
-            alert(err.message);
-            const btn = document.querySelector('#signinFormElement .btn');
-            btn.textContent = 'Sign In';
-            btn.disabled = false;
-        }
-    });
+                btn.disabled = true;
+                btn.textContent = 'Creating...';
+
+                const userCred = await auth.createUserWithEmailAndPassword(email, password);
+
+                const uid = userCred.user.uid;
+
+                await db.ref('users/' + uid).set({
+                    uid,
+                    name,
+                    email,
+                    bio: 'Hey there! I am using Unichat.',
+                    pic: '',
+                    status: 'online',
+                    createdAt: Date.now()
+                });
+
+                btn.textContent = 'Create Account';
+                btn.disabled = false;
+
+            } catch (err) {
+
+                alert(err.message);
+
+                btn.textContent = 'Create Account';
+                btn.disabled = false;
+            }
+        });
+    }
+
+    // SIGN IN
+    const signinForm = $('signinFormElement');
+
+    if (signinForm) {
+
+        signinForm.addEventListener('submit', async (e) => {
+
+            e.preventDefault();
+
+            const email = $('signinEmail').value.trim();
+            const password = $('signinPassword').value;
+
+            if (!email || !password) {
+                alert('Please enter email and password');
+                return;
+            }
+
+            const btn = signinForm.querySelector('.btn');
+
+            try {
+
+                btn.disabled = true;
+                btn.textContent = 'Signing in...';
+
+                const userCred = await auth.signInWithEmailAndPassword(email, password);
+
+                await db.ref('users/' + userCred.user.uid).update({
+                    status: 'online'
+                });
+
+                btn.textContent = 'Sign In';
+                btn.disabled = false;
+
+            } catch (err) {
+
+                alert(err.message);
+
+                btn.textContent = 'Sign In';
+                btn.disabled = false;
+            }
+        });
+    }
 }
 
 // ============================================
 // ENTER APP
 // ============================================
 function enterApp(user) {
+
     currentUser = user;
-    document.querySelector('.auth-container').classList.add('hidden');
-    document.getElementById('dashboard').style.display = 'flex';
+
+    const authContainer = document.querySelector('.auth-container');
+
+    if (authContainer) {
+        authContainer.classList.add('hidden');
+    }
+
+    if ($('dashboard')) {
+        $('dashboard').style.display = 'flex';
+    }
+
     loadUserProfile();
     loadUserList();
-    loadEmojis();
     setupEditProfile();
 }
 
@@ -160,19 +253,40 @@ function enterApp(user) {
 // LOAD USER PROFILE
 // ============================================
 function loadUserProfile() {
+
     if (!currentUser) return;
 
     db.ref('users/' + currentUser.uid).on('value', (snap) => {
+
         const data = snap.val();
-        if (data) {
-            currentUserData = data;
-            const letter = data.name.charAt(0).toUpperCase();
-            document.getElementById('menuAvatar').textContent = letter;
-            document.getElementById('menuUserName').textContent = data.name;
-            document.getElementById('menuUserStatus').textContent = data.status === 'online' ? '● Online' : '○ Offline';
-            document.getElementById('editSidebarName').value = data.name;
-            document.getElementById('editSidebarBio').value = data.bio || 'Hey there! I am using Unichat.';
-            document.getElementById('editProfileAvatar').textContent = letter;
+
+        if (!data) return;
+
+        currentUserData = data;
+
+        const letter = data.name.charAt(0).toUpperCase();
+
+        if ($('menuAvatar')) $('menuAvatar').textContent = letter;
+        if ($('menuUserName')) $('menuUserName').textContent = data.name;
+
+        if ($('menuUserStatus')) {
+            $('menuUserStatus').textContent =
+                data.status === 'online'
+                    ? '● Online'
+                    : '○ Offline';
+        }
+
+        if ($('editSidebarName')) {
+            $('editSidebarName').value = data.name;
+        }
+
+        if ($('editSidebarBio')) {
+            $('editSidebarBio').value =
+                data.bio || 'Hey there! I am using Unichat.';
+        }
+
+        if ($('editProfileAvatar')) {
+            $('editProfileAvatar').textContent = letter;
         }
     });
 }
@@ -181,42 +295,44 @@ function loadUserProfile() {
 // LOAD USER LIST
 // ============================================
 function loadUserList() {
-    const list = document.getElementById('userList');
-    list.innerHTML = '';
 
-    if (userListListener) userListListener();
+    const list = $('userList');
 
-    userListListener = db.ref('users').on('child_added', (snap) => {
-        const user = snap.val();
-        if (user.uid === currentUser.uid) return;
+    if (!list) return;
 
-        const el = document.createElement('div');
-        el.className = 'user-item';
-        const letter = user.name.charAt(0).toUpperCase();
-        el.innerHTML = `
-            <div class="user-avatar">
-                ${letter}
-                <span class="status-indicator ${user.status === 'online' ? 'online' : ''}"></span>
-            </div>
-            <div class="user-info">
-                <h4>${user.name}</h4>
-                <p>${user.status === 'online' ? 'Online' : 'Offline'}</p>
-            </div>
-        `;
-        el.addEventListener('click', () => openChat(user));
-        list.appendChild(el);
-    });
+    db.ref('users').off();
 
-    // Update status in realtime
-    db.ref('users').on('child_changed', (snap) => {
-        const user = snap.val();
-        if (user.uid === currentUser.uid) return;
-        const items = list.querySelectorAll('.user-item');
-        items.forEach(item => {
-            if (item.querySelector('h4').textContent === user.name) {
-                item.querySelector('.status-indicator').className = 'status-indicator ' + (user.status === 'online' ? 'online' : '');
-                item.querySelector('p').textContent = user.status === 'online' ? 'Online' : 'Offline';
-            }
+    db.ref('users').on('value', (snap) => {
+
+        list.innerHTML = '';
+
+        snap.forEach((child) => {
+
+            const user = child.val();
+
+            if (!user || user.uid === currentUser.uid) return;
+
+            const el = document.createElement('div');
+
+            el.className = 'user-item';
+
+            const letter = user.name.charAt(0).toUpperCase();
+
+            el.innerHTML = `
+                <div class="user-avatar">
+                    ${letter}
+                    <span class="status-indicator ${user.status === 'online' ? 'online' : ''}"></span>
+                </div>
+
+                <div class="user-info">
+                    <h4>${user.name}</h4>
+                    <p>${user.status === 'online' ? 'Online' : 'Offline'}</p>
+                </div>
+            `;
+
+            el.addEventListener('click', () => openChat(user));
+
+            list.appendChild(el);
         });
     });
 }
@@ -225,74 +341,163 @@ function loadUserList() {
 // OPEN CHAT
 // ============================================
 function openChat(user) {
+
     activeChatUser = user;
+
     const letter = user.name.charAt(0).toUpperCase();
 
-    document.getElementById('chatHeaderAvatar').textContent = letter;
-    document.getElementById('chatHeaderName').textContent = user.name;
-    document.getElementById('chatHeaderStatus').className = 'status-indicator ' + (user.status === 'online' ? 'online' : '');
-    document.getElementById('chatHeaderStatusText').textContent = user.status === 'online' ? 'Online' : 'Offline';
+    if ($('chatHeaderAvatar')) $('chatHeaderAvatar').textContent = letter;
+    if ($('chatHeaderName')) $('chatHeaderName').textContent = user.name;
 
-    document.getElementById('profileAvatar').textContent = letter;
-    document.getElementById('profileName').textContent = user.name;
-    document.getElementById('profileBio').textContent = user.bio || 'No bio';
-    document.getElementById('profileStatus').textContent = user.status === 'online' ? '● Online' : '○ Offline';
-    document.getElementById('profileStatusIndicator').className = 'status-indicator ' + (user.status === 'online' ? 'online' : '');
+    if ($('chatHeaderStatus')) {
+        $('chatHeaderStatus').className =
+            'status-indicator ' +
+            (user.status === 'online' ? 'online' : '');
+    }
+
+    if ($('chatHeaderStatusText')) {
+        $('chatHeaderStatusText').textContent =
+            user.status === 'online'
+                ? 'Online'
+                : 'Offline';
+    }
+
+    if ($('profileAvatar')) $('profileAvatar').textContent = letter;
+    if ($('profileName')) $('profileName').textContent = user.name;
+
+    if ($('profileBio')) {
+        $('profileBio').textContent = user.bio || 'No bio';
+    }
+
+    if ($('profileStatus')) {
+        $('profileStatus').textContent =
+            user.status === 'online'
+                ? '● Online'
+                : '○ Offline';
+    }
+
+    if ($('profileStatusIndicator')) {
+        $('profileStatusIndicator').className =
+            'status-indicator ' +
+            (user.status === 'online' ? 'online' : '');
+    }
 
     loadMessages(user.uid);
-    document.getElementById('rightSidebar').classList.remove('active');
+
+    if ($('rightSidebar')) {
+        $('rightSidebar').classList.remove('active');
+    }
 }
 
 // ============================================
 // LOAD MESSAGES
 // ============================================
 function loadMessages(chatUid) {
-    const chatEl = document.getElementById('chatMessages');
-    chatEl.innerHTML = '<p class="no-messages">Loading messages...</p>';
 
-    if (messagesListener) messagesListener();
+    const chatEl = $('chatMessages');
 
-    const chatId = [currentUser.uid, chatUid].sort().join('_');
+    if (!chatEl) return;
 
-    messagesListener = db.ref('chats/' + chatId).orderByChild('createdAt').on('child_added', (snap) => {
-        const msg = snap.val();
-        const isMe = msg.sender === currentUser.uid;
+    chatEl.innerHTML = '';
 
-        if (chatEl.querySelector('.no-messages')) {
+    const chatId = [currentUser.uid, chatUid]
+        .sort()
+        .join('_');
+
+    db.ref('chats/' + chatId).off();
+
+    db.ref('chats/' + chatId)
+        .orderByChild('createdAt')
+        .on('value', (snap) => {
+
             chatEl.innerHTML = '';
-        }
 
-        const div = document.createElement('div');
-        div.className = 'message ' + (isMe ? 'sent' : 'received');
+            if (!snap.exists()) {
 
-        if (msg.type === 'image') {
-            div.innerHTML = `<img src="${msg.fileUrl}" alt="image" style="max-width: 200px; border-radius: 8px;"><span class="time">${msg.time}</span>`;
-        } else {
-            div.innerHTML = msg.text + '<span class="time">' + msg.time + '</span>';
-        }
+                chatEl.innerHTML =
+                    '<p class="no-messages">No messages yet</p>';
 
-        chatEl.appendChild(div);
-        chatEl.scrollTop = chatEl.scrollHeight;
-    });
+                return;
+            }
+
+            snap.forEach((child) => {
+
+                const msg = child.val();
+
+                const isMe = msg.sender === currentUser.uid;
+
+                const div = document.createElement('div');
+
+                div.className =
+                    'message ' + (isMe ? 'sent' : 'received');
+
+                // IMAGE
+                if (msg.type === 'image') {
+
+                    div.innerHTML = `
+                        <img 
+                            src="${msg.fileUrl}" 
+                            alt="image"
+                            style="max-width:200px;border-radius:10px;"
+                        >
+
+                        <span class="time">
+                            ${msg.time}
+                        </span>
+                    `;
+
+                } else {
+
+                    const text = document.createElement('span');
+                    text.textContent = msg.text;
+
+                    const time = document.createElement('span');
+                    time.className = 'time';
+                    time.textContent = msg.time;
+
+                    div.appendChild(text);
+                    div.appendChild(time);
+                }
+
+                chatEl.appendChild(div);
+            });
+
+            chatEl.scrollTop = chatEl.scrollHeight;
+        });
 }
 
 // ============================================
 // SEND MESSAGE
 // ============================================
 function sendMessage() {
-    if (!activeChatUser) return alert('Select a user first');
-    const input = document.getElementById('messageInput');
+
+    if (!activeChatUser) {
+        alert('Select a user first');
+        return;
+    }
+
+    const input = $('messageInput');
+
+    if (!input) return;
+
     const text = input.value.trim();
+
     if (!text) return;
 
-    const chatId = [currentUser.uid, activeChatUser.uid].sort().join('_');
-    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const chatId = [currentUser.uid, activeChatUser.uid]
+        .sort()
+        .join('_');
+
+    const time = new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 
     db.ref('chats/' + chatId).push({
         sender: currentUser.uid,
-        text: text,
+        text,
         type: 'text',
-        time: time,
+        time,
         createdAt: Date.now()
     });
 
@@ -303,95 +508,161 @@ function sendMessage() {
 // SEND IMAGE
 // ============================================
 async function sendImage() {
-    if (!activeChatUser) return alert('Select a user first');
-    const fileInput = document.getElementById('imageInput');
+
+    if (!activeChatUser) {
+        alert('Select a user first');
+        return;
+    }
+
+    const fileInput = $('imageInput');
+
+    if (!fileInput || !fileInput.files[0]) return;
+
     const file = fileInput.files[0];
-    if (!file) return;
 
-    const chatId = [currentUser.uid, activeChatUser.uid].sort().join('_');
-    const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const chatId = [currentUser.uid, activeChatUser.uid]
+        .sort()
+        .join('_');
 
-    const storageRef = storage.ref('images/' + Date.now() + '_' + file.name);
+    const time = new Date().toLocaleTimeString([], {
+        hour: '2-digit',
+        minute: '2-digit'
+    });
 
     try {
+
+        const storageRef = storage.ref(
+            'images/' + Date.now() + '_' + file.name
+        );
+
         const snapshot = await storageRef.put(file);
+
         const url = await snapshot.ref.getDownloadURL();
 
-        db.ref('chats/' + chatId).push({
+        await db.ref('chats/' + chatId).push({
             sender: currentUser.uid,
             type: 'image',
             fileUrl: url,
-            time: time,
+            time,
             createdAt: Date.now()
         });
-    } catch (err) {
-        alert('Error uploading image: ' + err.message);
-    }
 
-    fileInput.value = '';
+        fileInput.value = '';
+
+    } catch (err) {
+
+        alert(err.message);
+    }
 }
 
 // ============================================
 // EMOJI PICKER
 // ============================================
 function loadEmojis() {
-    const emojis = ['😀', '😁', '😂', '🤣', '😃', '😄', '😅', '😆', '😉', '😊', '😋', '😎', '😍', '🥰', '😘', '😗', '😙', '😚', '🙂', '🤗', '🤩', '🤔', '😐', '😑', '😶', '🙄', '😏', '😣', '😥', '😮', '🤐', '😯', '😪', '😫', '🥱', '😴', '😌', '😛', '😜', '😝', '😒', '😓', '😔', '😕', '🤑', '😲', '☹️', '🙁', '😖', '😞', '😟', '😤', '😢', '😭', '😦', '😧', '😨', '😩', '🤯', '😬', '😰', '😱', '🥶', '🥵', '😳', '😡', '😠', '🤬', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '😇'];
 
-    const container = document.getElementById('emojiContent');
+    const emojis = [
+        '😀','😁','😂','🤣','😃','😄','😅',
+        '😆','😉','😊','😍','🥰','😘','😎',
+        '😭','😡','😱','🤯','🥶','🥵','😴'
+    ];
+
+    const container = $('emojiContent');
+
+    if (!container) return;
+
     container.innerHTML = '';
 
-    emojis.forEach(emoji => {
+    emojis.forEach((emoji) => {
+
         const span = document.createElement('span');
+
         span.className = 'emoji-item';
+
         span.textContent = emoji;
+
         span.addEventListener('click', () => {
-            document.getElementById('messageInput').value += emoji;
-            document.getElementById('emojiPicker').classList.add('hidden');
+
+            if ($('messageInput')) {
+                $('messageInput').value += emoji;
+            }
+
+            if ($('emojiPicker')) {
+                $('emojiPicker').classList.add('hidden');
+            }
         });
+
         container.appendChild(span);
     });
 }
 
 // ============================================
-// EDIT PROFILE FUNCTIONS
+// EDIT PROFILE
 // ============================================
 function setupEditProfile() {
-    // Open edit from menu
-    document.getElementById('editBtn').addEventListener('click', openEditProfile);
-    // Open edit from sidebar
-    document.getElementById('editProfileBtn').addEventListener('click', openEditProfile);
-    // Save changes
-    document.getElementById('saveProfileBtn').addEventListener('click', saveProfileChanges);
-    // Close edit
-    document.getElementById('closeEditBtn').addEventListener('click', () => {
-        document.getElementById('sidebarEditMode').classList.add('hidden');
-        document.getElementById('sidebarViewMode').classList.remove('hidden');
-    });
+
+    if ($('editBtn')) {
+        $('editBtn').onclick = openEditProfile;
+    }
+
+    if ($('editProfileBtn')) {
+        $('editProfileBtn').onclick = openEditProfile;
+    }
+
+    if ($('saveProfileBtn')) {
+        $('saveProfileBtn').onclick = saveProfileChanges;
+    }
+
+    if ($('closeEditBtn')) {
+
+        $('closeEditBtn').onclick = () => {
+
+            $('sidebarEditMode').classList.add('hidden');
+
+            $('sidebarViewMode').classList.remove('hidden');
+        };
+    }
 }
 
 function openEditProfile() {
-    document.getElementById('sidebarViewMode').classList.add('hidden');
-    document.getElementById('sidebarEditMode').classList.remove('hidden');
-    document.getElementById('rightSidebar').classList.add('active');
-    document.getElementById('settingsDropdown').classList.remove('show');
+
+    $('sidebarViewMode').classList.add('hidden');
+
+    $('sidebarEditMode').classList.remove('hidden');
+
+    $('rightSidebar').classList.add('active');
+
+    if ($('settingsDropdown')) {
+        $('settingsDropdown').classList.remove('show');
+    }
 }
 
 async function saveProfileChanges() {
-    const newName = document.getElementById('editSidebarName').value.trim();
-    const newBio = document.getElementById('editSidebarBio').value.trim();
 
-    if (!newName) return alert('Name cannot be empty');
+    const newName = $('editSidebarName').value.trim();
+
+    const newBio = $('editSidebarBio').value.trim();
+
+    if (!newName) {
+        alert('Name cannot be empty');
+        return;
+    }
 
     try {
+
         await db.ref('users/' + currentUser.uid).update({
             name: newName,
             bio: newBio
         });
-        alert('Profile updated!');
-        document.getElementById('sidebarEditMode').classList.add('hidden');
-        document.getElementById('sidebarViewMode').classList.remove('hidden');
+
+        alert('Profile updated');
+
+        $('sidebarEditMode').classList.add('hidden');
+
+        $('sidebarViewMode').classList.remove('hidden');
+
     } catch (err) {
-        alert('Error updating: ' + err.message);
+
+        alert(err.message);
     }
 }
 
@@ -399,93 +670,153 @@ async function saveProfileChanges() {
 // EVENT LISTENERS
 // ============================================
 function setupEventListeners() {
-    // Send message
-    document.getElementById('sendBtn').addEventListener('click', sendMessage);
-    document.getElementById('messageInput').addEventListener('keydown', (e) => {
-        if (e.key === 'Enter') sendMessage();
-    });
 
-    // Send image
-    document.getElementById('imageInput').addEventListener('change', sendImage);
+    // SEND MESSAGE
+    addListener('sendBtn', 'click', sendMessage);
 
-    // Emoji picker
-    document.getElementById('emojiBtn').addEventListener('click', () => {
-        document.getElementById('emojiPicker').classList.toggle('hidden');
-    });
-
-    // Close emoji picker
-    document.addEventListener('click', (e) => {
-        const picker = document.getElementById('emojiPicker');
-        const btn = document.getElementById('emojiBtn');
-        if (!picker.contains(e.target) && e.target !== btn && !btn.contains(e.target)) {
-            picker.classList.add('hidden');
+    addListener('messageInput', 'keydown', (e) => {
+        if (e.key === 'Enter') {
+            sendMessage();
         }
     });
 
-    // Search users
-    document.getElementById('searchChat').addEventListener('input', (e) => {
-        const val = e.target.value.toLowerCase();
-        document.querySelectorAll('.user-item').forEach(el => {
-            const name = el.querySelector('h4').textContent.toLowerCase();
-            el.style.display = name.includes(val) ? 'flex' : 'none';
+    // SEND IMAGE
+    addListener('imageInput', 'change', sendImage);
+
+    // EMOJI
+    addListener('emojiBtn', 'click', () => {
+        $('emojiPicker').classList.toggle('hidden');
+    });
+
+    // SEARCH
+    addListener('searchChat', 'input', (e) => {
+
+        const value = e.target.value.toLowerCase();
+
+        document.querySelectorAll('.user-item').forEach((item) => {
+
+            const name = item
+                .querySelector('h4')
+                .textContent
+                .toLowerCase();
+
+            item.style.display =
+                name.includes(value)
+                    ? 'flex'
+                    : 'none';
         });
     });
 
-    // ✅ FIXED Header menu — dropdown now works
-    document.getElementById('headermenu').addEventListener('click', () => {
-        document.getElementById('mainDropdown').classList.toggle('show');
-        document.getElementById('settingsDropdown').classList.remove('show');
+    // MENU
+    addListener('headermenu', 'click', () => {
+
+        $('mainDropdown').classList.toggle('show');
+
+        $('settingsDropdown').classList.remove('show');
     });
 
-    document.getElementById('settingsBtn').addEventListener('click', () => {
-        document.getElementById('mainDropdown').classList.remove('show');
-        document.getElementById('settingsDropdown').classList.toggle('show');
+    addListener('settingsBtn', 'click', () => {
+
+        $('mainDropdown').classList.remove('show');
+
+        $('settingsDropdown').classList.toggle('show');
     });
 
-    document.getElementById('backToMenuBtn').addEventListener('click', () => {
-        document.getElementById('settingsDropdown').classList.remove('show');
-        document.getElementById('mainDropdown').classList.toggle('show');
+    addListener('backToMenuBtn', 'click', () => {
+
+        $('settingsDropdown').classList.remove('show');
+
+        $('mainDropdown').classList.add('show');
     });
 
-    // Dark mode
-    document.getElementById('darkBtn').addEventListener('click', () => {
+    // DARK MODE
+    addListener('darkBtn', 'click', () => {
+
         darkMode = !darkMode;
+
         document.body.classList.toggle('dark-mode', darkMode);
-        document.getElementById('darkModeToggle').classList.toggle('active', darkMode);
+
+        if ($('darkModeToggle')) {
+            $('darkModeToggle').classList.toggle('active', darkMode);
+        }
+
         localStorage.setItem('unichat_dark', darkMode);
-        document.getElementById('settingsDropdown').classList.remove('show');
+
+        $('settingsDropdown').classList.remove('show');
     });
 
-    // Active status
-    document.getElementById('statusBtn').addEventListener('click', async () => {
+    // STATUS
+    addListener('statusBtn', 'click', async () => {
+
         activeStatus = !activeStatus;
-        document.getElementById('statusToggle').classList.toggle('active', activeStatus);
+
+        if ($('statusToggle')) {
+            $('statusToggle').classList.toggle('active', activeStatus);
+        }
+
         if (currentUser) {
+
             await db.ref('users/' + currentUser.uid).update({
-                status: activeStatus ? 'online' : 'offline'
+                status: activeStatus
+                    ? 'online'
+                    : 'offline'
             });
         }
-        document.getElementById('settingsDropdown').classList.remove('show');
+
+        $('settingsDropdown').classList.remove('show');
     });
 
-    // Logout
-    document.getElementById('logoutBtn').addEventListener('click', async () => {
-        if (currentUser) {
-            await db.ref('users/' + currentUser.uid).update({ status: 'offline' });
-            await auth.signOut();
+    // LOGOUT
+    addListener('logoutBtn', 'click', async () => {
+
+        try {
+
+            if (currentUser) {
+
+                await db.ref('users/' + currentUser.uid).update({
+                    status: 'offline'
+                });
+
+                await auth.signOut();
+            }
+
+            location.reload();
+
+        } catch (err) {
+
+            alert(err.message);
         }
-        location.reload();
     });
 
-    // Right sidebar - open profile
-    document.getElementById('openProfileBtn').addEventListener('click', () => {
-        document.getElementById('sidebarViewMode').classList.remove('hidden');
-        document.getElementById('sidebarEditMode').classList.add('hidden');
-        document.getElementById('rightSidebar').classList.add('active');
+    // PROFILE SIDEBAR
+    addListener('openProfileBtn', 'click', () => {
+
+        $('sidebarViewMode').classList.remove('hidden');
+
+        $('sidebarEditMode').classList.add('hidden');
+
+        $('rightSidebar').classList.add('active');
     });
 
-    // Right sidebar - close
-    document.getElementById('closeSidebarBtn').addEventListener('click', () => {
-        document.getElementById('rightSidebar').classList.remove('active');
+    addListener('closeSidebarBtn', 'click', () => {
+
+        $('rightSidebar').classList.remove('active');
+    });
+
+    // CLOSE EMOJI PICKER
+    document.addEventListener('click', (e) => {
+
+        const picker = $('emojiPicker');
+
+        const btn = $('emojiBtn');
+
+        if (
+            picker &&
+            btn &&
+            !picker.contains(e.target) &&
+            !btn.contains(e.target)
+        ) {
+            picker.classList.add('hidden');
+        }
     });
 }
