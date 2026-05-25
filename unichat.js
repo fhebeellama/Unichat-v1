@@ -1,9 +1,6 @@
 // ============================================
 // FIREBASE CONFIGURATION
 // ============================================
-// ✅ No need for import statements if you have script tags in HTML
-// Just use the firebaseConfig you already have:
-
 const firebaseConfig = {
     apiKey: "AIzaSyDdVR0x17NB3ma4ulyL-Jdv3rukfNijwgs",
     authDomain: "unichat-v1.firebaseapp.com",
@@ -46,6 +43,13 @@ document.addEventListener('DOMContentLoaded', () => {
 
     setupAuthForms();
     setupEventListeners();
+
+    // Auth state listener
+    auth.onAuthStateChanged(user => {
+        if (user) {
+            enterApp(user);
+        }
+    });
 });
 
 // ============================================
@@ -81,7 +85,7 @@ function setupAuthForms() {
             btn.textContent = 'Creating...';
             btn.disabled = true;
 
-            const userCred = await firebase.auth().createUserWithEmailAndPassword(auth, email, password);
+            const userCred = await auth.createUserWithEmailAndPassword(email, password);
             const uid = userCred.user.uid;
 
             await db.ref('users/' + uid).set({
@@ -96,7 +100,6 @@ function setupAuthForms() {
 
             btn.textContent = 'Create Account';
             btn.disabled = false;
-            enterApp(userCred.user);
         } catch (err) {
             alert(err.message);
             const btn = document.querySelector('#signupFormElement .btn');
@@ -118,12 +121,11 @@ function setupAuthForms() {
             btn.textContent = 'Signing in...';
             btn.disabled = true;
 
-            const userCred = await firebase.auth().signInWithEmailAndPassword(auth, email, password);
+            const userCred = await auth.signInWithEmailAndPassword(email, password);
             await db.ref('users/' + userCred.user.uid).update({ status: 'online' });
 
             btn.textContent = 'Sign In';
             btn.disabled = false;
-            enterApp(userCred.user);
         } catch (err) {
             alert(err.message);
             const btn = document.querySelector('#signinFormElement .btn');
@@ -139,10 +141,11 @@ function setupAuthForms() {
 function enterApp(user) {
     currentUser = user;
     document.querySelector('.auth-container').classList.add('hidden');
-    document.getElementById('dashboard').classList.remove('hidden');
+    document.getElementById('dashboard').style.display = 'flex';
     loadUserProfile();
     loadUserList();
     loadEmojis();
+    setupEditProfile();
 }
 
 // ============================================
@@ -175,7 +178,7 @@ function loadUserList() {
 
     if (userListListener) userListListener();
 
-    userListListener = db.ref('users').orderByChild('status').on('child_added', (snap) => {
+    userListListener = db.ref('users').on('child_added', (snap) => {
         const user = snap.val();
         if (user.uid === currentUser.uid) return;
 
@@ -185,7 +188,7 @@ function loadUserList() {
         el.innerHTML = `
             <div class="user-avatar">
                 ${letter}
-                <span class="${user.status === 'online' ? 'online' : ''}"></span>
+                <span class="status-indicator ${user.status === 'online' ? 'online' : ''}"></span>
             </div>
             <div class="user-info">
                 <h4>${user.name}</h4>
@@ -194,6 +197,19 @@ function loadUserList() {
         `;
         el.addEventListener('click', () => openChat(user));
         list.appendChild(el);
+    });
+
+    // Update status in realtime
+    db.ref('users').on('child_changed', (snap) => {
+        const user = snap.val();
+        if (user.uid === currentUser.uid) return;
+        const items = list.querySelectorAll('.user-item');
+        items.forEach(item => {
+            if (item.querySelector('h4').textContent === user.name) {
+                item.querySelector('.status-indicator').className = 'status-indicator ' + (user.status === 'online' ? 'online' : '');
+                item.querySelector('p').textContent = user.status === 'online' ? 'Online' : 'Offline';
+            }
+        });
     });
 }
 
@@ -242,7 +258,7 @@ function loadMessages(chatUid) {
         div.className = 'message ' + (isMe ? 'sent' : 'received');
 
         if (msg.type === 'image') {
-            div.innerHTML = '<img src="' + msg.fileUrl + '" alt="image"><span class="time">' + msg.time + '</span>';
+            div.innerHTML = `<img src="${msg.fileUrl}" alt="image" style="max-width: 200px; border-radius: 8px;"><span class="time">${msg.time}</span>`;
         } else {
             div.innerHTML = msg.text + '<span class="time">' + msg.time + '</span>';
         }
@@ -329,6 +345,46 @@ function loadEmojis() {
 }
 
 // ============================================
+// EDIT PROFILE FUNCTIONS
+// ============================================
+function setupEditProfile() {
+    // Open edit from sidebar
+    document.getElementById('editProfileBtn').addEventListener('click', openEditProfile);
+    // Save changes
+    document.getElementById('saveProfileBtn').addEventListener('click', saveProfileChanges);
+    // Close edit
+    document.getElementById('closeEditBtn').addEventListener('click', () => {
+        document.getElementById('sidebarEditMode').classList.add('hidden');
+        document.getElementById('sidebarViewMode').classList.remove('hidden');
+    });
+}
+
+function openEditProfile() {
+    document.getElementById('sidebarViewMode').classList.add('hidden');
+    document.getElementById('sidebarEditMode').classList.remove('hidden');
+    document.getElementById('rightSidebar').classList.add('active');
+}
+
+async function saveProfileChanges() {
+    const newName = document.getElementById('editSidebarName').value.trim();
+    const newBio = document.getElementById('editSidebarBio').value.trim();
+
+    if (!newName) return alert('Name cannot be empty');
+
+    try {
+        await db.ref('users/' + currentUser.uid).update({
+            name: newName,
+            bio: newBio
+        });
+        alert('Profile updated!');
+        document.getElementById('sidebarEditMode').classList.add('hidden');
+        document.getElementById('sidebarViewMode').classList.remove('hidden');
+    } catch (err) {
+        alert('Error updating: ' + err.message);
+    }
+}
+
+// ============================================
 // EVENT LISTENERS
 // ============================================
 function setupEventListeners() {
@@ -401,12 +457,6 @@ function setupEventListeners() {
         document.getElementById('settingsDropdown').classList.remove('show');
     });
 
-    // Edit profile from menu
-    document.getElementById('editBtn').addEventListener('click', () => {
-        document.getElementById('settingsDropdown').classList.remove('show');
-        openEditProfile();
-    });
-
     // Logout
     document.getElementById('logoutBtn').addEventListener('click', async () => {
         if (currentUser) {
@@ -416,7 +466,6 @@ function setupEventListeners() {
         location.reload();
     });
 
-    // Right sidebar - open profile
     document.getElementById('openProfileBtn').addEventListener('click', () => {
         document.getElementById('sidebarViewMode').classList.remove('hidden');
         document.getElementById('sidebarEditMode').classList.add('hidden');
@@ -427,4 +476,4 @@ function setupEventListeners() {
     document.getElementById('closeSidebarBtn').addEventListener('click', () => {
         document.getElementById('rightSidebar').classList.remove('active');
     });
-   
+}
