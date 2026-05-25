@@ -337,7 +337,7 @@ window.showSettings = showSettings;
 
 function showMainMenu() {
     document.getElementById("settingsDropdown").classList.add("hidden");
-    document.getElementById("mainDropdown").class.remove("hidden");
+    document.getElementById("mainDropdown").classList.remove("hidden");
 }
 window.showMainMenu = showMainMenu;
 
@@ -607,20 +607,20 @@ function startVideoCall() {
 window.startVideoCall = startVideoCall;
 
 // ==============================
-// RIGHT SIDEBAR ✅ FIXED
+// RIGHT SIDEBAR
 // ==============================
 function toggleRightSidebar() {
     const sidebar = document.getElementById("rightSidebar");
     sidebar.classList.toggle("active");
     
     if (sidebar.classList.contains("active")) {
-        // ✅ Reset to view mode every time we open
-        closeSidebarEditMode();
         if (activeChatUser && activeChatUser.email === currentUser.email) {
             loadMyProfileToSidebar();
         } else if (activeChatUser) {
             loadUserProfileToSidebar();
         }
+    } else {
+        closeSidebarEditMode();
     }
 }
 window.toggleRightSidebar = toggleRightSidebar;
@@ -774,57 +774,10 @@ function createGroup() {
 window.createGroup = createGroup;
 
 // ==============================
-// ✅ ADDED MISSING EVENT LISTENERS — EDIT PROFILE NOW WORKS
+// INITIAL CHECK
 // ==============================
 window.addEventListener("DOMContentLoaded", () => {
-    // Splash click
-    document.getElementById("splashScreen").addEventListener("click", startApp);
-
-    // Menu
-    document.getElementById("headermenu").addEventListener("click", toggleMenu);
-    document.getElementById("settingsBtn").addEventListener("click", showSettings);
-    document.getElementById("backToMenuBtn").addEventListener("click", showMainMenu);
-    document.getElementById("logoutBtn").addEventListener("click", logout);
-
-    // Settings toggles
-    document.getElementById("statusBtn").addEventListener("click", toggleMyStatus);
-    document.getElementById("darkBtn").addEventListener("click", toggleDarkMode);
-
-    // ✅ EDIT PROFILE BUTTON — BOTH PLACES NOW WORK
-    document.getElementById("editBtn").addEventListener("click", openSidebarEditProfile);
-    document.getElementById("editProfileBtn").addEventListener("click", openSidebarEditProfile);
-
-    // Right sidebar
-    document.getElementById("openProfileBtn").addEventListener("click", toggleRightSidebar);
-    document.getElementById("closeSidebarBtn").addEventListener("click", toggleRightSidebar);
-    document.getElementById("closeEditBtn").addEventListener("click", closeSidebarEditMode);
-    document.getElementById("saveProfileBtn").addEventListener("click", saveSidebarProfile);
-    document.getElementById("editProfilePic").addEventListener("change", previewProfilePic);
-    document.getElementById("blockBtn").addEventListener("click", toggleBlockUser);
-
-    // Chat
-    document.getElementById("sendBtn").addEventListener("click", sendMessage);
-    document.getElementById("messageInput").addEventListener("keypress", handleKeyPress);
-    document.getElementById("imageInput").addEventListener("change", function() { sendImage(this); });
-
-    // Emoji
-    document.getElementById("emojiBtn").addEventListener("click", toggleEmojiPicker);
-    document.querySelectorAll('.emoji-tab-btn').forEach(btn => {
-        btn.addEventListener("click", () => showEmojiTab(btn.dataset.tab));
-    });
-
-    // Mic
-    document.getElementById("micBtn").addEventListener("mousedown", startRecording);
-    document.getElementById("micBtn").addEventListener("mouseup", stopRecording);
-    document.getElementById("micBtn").addEventListener("mouseleave", stopRecording);
-
-    // Search
-    document.getElementById("searchChat").addEventListener("input", (e) => filterChat(e.target.value));
-
-    // Calls
-    document.getElementById("audioCallBtn").addEventListener("click", startAudioCall);
-    document.getElementById("videoCallBtn").addEventListener("click", startVideoCall);
-    document.getElementById("createGroupBtn").addEventListener("click", createGroup);
+    // Wait for splash click
 });
 
 // ==============================
@@ -849,7 +802,7 @@ document.addEventListener("click", (e) => {
 
     // Close emoji picker when clicking outside
     const emojiPicker = document.getElementById("emojiPicker");
-    const emojiBtn = document.querySelector(".icon-btn#emojiBtn");
+    const emojiBtn = document.querySelector(".icon-btn[onclick='toggleEmojiPicker()']");
     if (
         emojiPicker &&
         !emojiPicker.classList.contains("hidden") &&
