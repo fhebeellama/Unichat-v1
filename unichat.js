@@ -51,869 +51,310 @@ let unsubscribeUsers = null;
 let unsubscribeMessages = null;
 let splashClicked = false;
 
-// ==============================
-// LOCAL STORAGE
-// ==============================
-function saveCurrentState() {
-    localStorage.setItem("unichatUser", JSON.stringify(currentUser));
-}
+// ---------- GLOBAL STATE ----------
+let currentUser = null;
+let activeChatUser = null;
+let darkMode = false;
+let activeStatus = true;
 
-function loadSavedState() {
-    const saved = localStorage.getItem("unichatUser");
-    if (saved) {
-        currentUser = JSON.parse(saved);
-        return true;
-    }
-    return false;
-}
+// ---------- SPLASH SCREEN ----------
+document.getElementById('splashScreen').addEventListener('click', () => {
+    document.getElementById('splashScreen').classList.add('hidden');
+    document.querySelector('.auth-container').classList.remove('hidden');
+});
 
-function clearSession() {
-    localStorage.removeItem("unichatUser");
-    currentUser = {
-        uid: "",
-        name: "User",
-        email: "",
-        bio: "Hey there! I am using Unichat.",
-        isOnline: true,
-        darkMode: false,
-        profilePic: ""
+// ---------- AUTH FORM SWITCH ----------
+document.getElementById('showSignin').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('signupForm').classList.add('hidden');
+    document.getElementById('signinForm').classList.remove('hidden');
+});
+
+document.getElementById('showSignup').addEventListener('click', (e) => {
+    e.preventDefault();
+    document.getElementById('signinForm').classList.add('hidden');
+    document.getElementById('signupForm').classList.remove('hidden');
+});
+
+// ---------- SIGN UP ----------
+document.getElementById('signupFormElement').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const name = document.getElementById('signupName').value.trim();
+    const email = document.getElementById('signupEmail').value.trim();
+    const password = document.getElementById('signupPassword').value;
+    const confirmPassword = document.getElementById('signupConfirmPassword').value;
+
+    if (password !== confirmPassword) return alert('Passwords do not match!');
+
+    const users = JSON.parse(localStorage.getItem('unichat_users')) || [];
+    if (users.find(u => u.email === email)) return alert('Email already registered!');
+
+    const newUser = {
+        id: Date.now().toString(),
+        name,
+        email,
+        password,
+        bio: 'Hey there! I am using Unichat.',
+        avatarLetter: name.charAt(0).toUpperCase(),
+        online: true
     };
+    users.push(newUser);
+    localStorage.setItem('unichat_users', JSON.stringify(users));
+
+    currentUser = newUser;
+    enterApp();
+});
+
+// ---------- SIGN IN ----------
+document.getElementById('signinFormElement').addEventListener('submit', (e) => {
+    e.preventDefault();
+    const email = document.getElementById('signinEmail').value.trim();
+    const password = document.getElementById('signinPassword').value;
+
+    const users = JSON.parse(localStorage.getItem('unichat_users')) || [];
+    const found = users.find(u => u.email === email && u.password === password);
+    if (!found) return alert('Invalid email or password!');
+
+    found.online = true;
+    localStorage.setItem('unichat_users', JSON.stringify(users));
+    currentUser = found;
+    enterApp();
+});
+
+// ---------- ENTER APP ----------
+function enterApp() {
+    document.querySelector('.auth-container').classList.add('hidden');
+    document.getElementById('dashboard').style.display = 'flex';
+    updateHeaderMenu();
+    loadUserList();
 }
 
-// ==============================
-// SPLASH SCREEN
-// ==============================
-function startApp() {
-    if (splashClicked) return;
-    splashClicked = true;
+// ---------- HEADER MENU ----------
+document.getElementById('headermenu').addEventListener('click', () => {
+    document.getElementById('mainDropdown').classList.toggle('hidden');
+    document.getElementById('settingsDropdown').classList.add('hidden');
+});
 
-    const splash = document.getElementById("splashScreen");
-    if (splash) {
-        splash.style.display = "none";
-    }
+document.getElementById('settingsBtn').addEventListener('click', () => {
+    document.getElementById('mainDropdown').classList.add('hidden');
+    document.getElementById('settingsDropdown').classList.remove('hidden');
+});
 
-    if (loadSavedState()) {
-        showDashboardLoggedIn();
-    } else {
-        document.querySelector(".auth-container").classList.remove("hidden");
-        document.getElementById("signinForm").classList.remove("hidden");
-    }
-}
-window.startApp = startApp;
+document.getElementById('backToMenuBtn').addEventListener('click', () => {
+    document.getElementById('settingsDropdown').classList.add('hidden');
+    document.getElementById('mainDropdown').classList.remove('hidden');
+});
 
-// ==============================
-// DASHBOARD
-// ==============================
-function showDashboardLoggedIn() {
-    document.querySelector(".auth-container").classList.add("hidden");
-    document.getElementById("dashboard").style.display = "flex";
-    applyUserSettings();
-    if (unsubscribeUsers) unsubscribeUsers();
-    loadUsers();
-    updateUserStatus(true);
-}
+// ---------- DARK MODE ----------
+document.getElementById('darkBtn').addEventListener('click', () => {
+    darkMode = !darkMode;
+    document.body.classList.toggle('dark-mode', darkMode);
+    document.getElementById('darkModeToggle').classList.toggle('active', darkMode);
+    localStorage.setItem('unichat_dark', darkMode);
+});
 
-function applyUserSettings() {
-    document.getElementById("menuUserName").textContent = currentUser.name || "User";
-    const menuAvatar = document.getElementById("menuAvatar");
-    menuAvatar.textContent = (currentUser.name || "U").charAt(0).toUpperCase();
-    
-    if (currentUser.profilePic) {
-        menuAvatar.style.backgroundImage = `url(${currentUser.profilePic})`;
-        menuAvatar.style.backgroundSize = "cover";
-    } else {
-        menuAvatar.style.backgroundImage = "";
+// ---------- ACTIVE STATUS ----------
+document.getElementById('statusBtn').addEventListener('click', () => {
+    activeStatus = !activeStatus;
+    document.getElementById('statusToggle').classList.toggle('active', activeStatus);
+    if (currentUser) {
+        currentUser.online = activeStatus;
+        saveUsers();
+        loadUserList();
     }
-    
-    const statusEl = document.getElementById("menuUserStatus");
-    statusEl.textContent = currentUser.isOnline ? "● Online" : "○ Offline";
-    statusEl.style.color = currentUser.isOnline ? "#55efc4" : "#95a5a6";
-    
-    if (currentUser.darkMode) {
-        document.body.classList.add("dark-mode");
-        document.getElementById("darkModeToggle").classList.add("active");
-    } else {
-        document.body.classList.remove("dark-mode");
-        document.getElementById("darkModeToggle").classList.remove("active");
+});
+
+// ---------- LOGOUT ----------
+document.getElementById('logoutBtn').addEventListener('click', () => {
+    if (currentUser) {
+        currentUser.online = false;
+        saveUsers();
     }
-    
-    if (currentUser.isOnline) {
-        document.getElementById("statusToggle").classList.add("active");
-    } else {
-        document.getElementById("statusToggle").classList.remove("active");
-    }
+    currentUser = null;
+    activeChatUser = null;
+    document.getElementById('dashboard').style.display = 'none';
+    document.querySelector('.auth-container').classList.remove('hidden');
+    document.getElementById('signinForm').classList.add('hidden');
+    document.getElementById('signupForm').classList.remove('hidden');
+});
+
+// ---------- UPDATE HEADER MENU ----------
+function updateHeaderMenu() {
+    if (!currentUser) return;
+    document.getElementById('menuAvatar').textContent = currentUser.avatarLetter;
+    document.getElementById('menuUserName').textContent = currentUser.name;
+    document.getElementById('menuUserStatus').textContent = activeStatus ? '● Online' : '● Offline';
+    document.getElementById('statusToggle').classList.toggle('active', activeStatus);
+    document.getElementById('darkModeToggle').classList.toggle('active', darkMode);
 }
 
-// ==============================
-// UPDATE USER STATUS IN FIRESTORE
-// ==============================
-async function updateUserStatus(status) {
-    if (!currentUser.email) return;
-    try {
-        await updateDoc(doc(db, "users", currentUser.email), {
-            isOnline: status
-        });
-    } catch (e) {
-        console.log("Status update error:", e);
-    }
-}
+// ---------- LOAD USER LIST ----------
+function loadUserList() {
+    const users = JSON.parse(localStorage.getItem('unichat_users')) || [];
+    const listEl = document.getElementById('userList');
+    listEl.innerHTML = '';
 
-// ==============================
-// LOAD USERS
-// ==============================
-function loadUsers() {
-    const usersRef = collection(db, "users");
-
-    unsubscribeUsers = onSnapshot(usersRef, (snapshot) => {
-        const userList = document.querySelector(".user-list");
-        if (!userList) return;
-
-        userList.innerHTML = "";
-
-        snapshot.forEach((docSnap) => {
-            const user = docSnap.data();
-
-            if (user.email === currentUser.email) return;
-
-            const userDiv = document.createElement("div");
-            userDiv.className = "user";
-
-            userDiv.onclick = () => {
-                switchUser(user);
-            };
-
-            userDiv.innerHTML = `
-                <div class="avatar-container">
-                    <div class="avatar" style="background-image: ${user.profilePic ? `url(${user.profilePic})` : 'none'}; background-size:cover;">
-                        ${!user.profilePic ? user.name.charAt(0).toUpperCase() : ''}
-                    </div>
-                    <span class="status-indicator ${user.isOnline ? 'online' : 'offline'}"></span>
+    users
+        .filter(u => u.id !== currentUser.id)
+        .forEach(user => {
+            const el = document.createElement('div');
+            el.className = 'user-item';
+            el.dataset.id = user.id;
+            el.innerHTML = `
+                <div class="user-avatar">${user.avatarLetter}
+                    <span class="status-indicator ${user.online ? 'online' : ''}"></span>
                 </div>
                 <div class="user-info">
                     <h4>${user.name}</h4>
-                    <p>${user.email}</p>
+                    <p>Last message...</p>
                 </div>
             `;
-
-            userList.appendChild(userDiv);
+            el.addEventListener('click', () => openChat(user));
+            listEl.appendChild(el);
         });
-    });
 }
 
-// ==============================
-// AUTH SWITCH
-// ==============================
-document.getElementById("showSignin").addEventListener("click", (e) => {
-    e.preventDefault();
-    document.getElementById("signupForm").classList.add("hidden");
-    document.getElementById("signinForm").classList.remove("hidden");
-});
-
-document.getElementById("showSignup").addEventListener("click", (e) => {
-    e.preventDefault();
-    document.getElementById("signinForm").classList.add("hidden");
-    document.getElementById("signupForm").classList.remove("hidden");
-});
-
-// ==============================
-// SIGNUP
-// ==============================
-document.getElementById("signupFormElement").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    
-    const name = document.getElementById("signupName").value.trim();
-    const email = document.getElementById("signupEmail").value.trim().toLowerCase();
-    const password = document.getElementById("signupPassword").value;
-    const confirmPassword = document.getElementById("signupConfirmPassword").value;
-    
-    if (password !== confirmPassword) {
-        alert("Passwords do not match!");
-        return;
-    }
-    
-    if (password.length < 6) {
-        alert("Password must be at least 6 characters!");
-        return;
-    }
-    
-    try {
-        const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-        
-        currentUser.uid = userCredential.user.uid;
-        currentUser.name = name;
-        currentUser.email = email;
-        
-        await setDoc(doc(db, "users", email), {
-            uid: userCredential.user.uid,
-            name: name,
-            email: email,
-            bio: currentUser.bio,
-            isOnline: true,
-            profilePic: ""
-        });
-        
-        saveCurrentState();
-        alert("Account created successfully!");
-        showDashboardLoggedIn();
-        
-    } catch (error) {
-        alert(error.message);
-    }
-});
-
-// ==============================
-// LOGIN
-// ==============================
-document.getElementById("signinFormElement").addEventListener("submit", async (e) => {
-    e.preventDefault();
-    
-    const email = document.getElementById("signinEmail").value.trim().toLowerCase();
-    const password = document.getElementById("signinPassword").value;
-    
-    try {
-        const userCredential = await signInWithEmailAndPassword(auth, email, password);
-        
-        const userDoc = await getDoc(doc(db, "users", email));
-        if (userDoc.exists()) {
-            const userData = userDoc.data();
-            currentUser.uid = userCredential.user.uid;
-            currentUser.name = userData.name;
-            currentUser.bio = userData.bio || currentUser.bio;
-            currentUser.email = email;
-            currentUser.isOnline = userData.isOnline;
-            currentUser.profilePic = userData.profilePic || "";
-            currentUser.darkMode = userData.darkMode || false;
-        }
-        
-        saveCurrentState();
-        showDashboardLoggedIn();
-        
-    } catch (error) {
-        alert(error.message);
-    }
-});
-
-// ==============================
-// LOGOUT
-// ==============================
-async function logout() {
-    try {
-        await updateUserStatus(false);
-        await signOut(auth);
-        clearSession();
-        document.getElementById("dashboard").style.display = "none";
-        document.querySelector(".auth-container").classList.remove("hidden");
-        document.getElementById("signinForm").classList.remove("hidden");
-        document.getElementById("signupForm").classList.add("hidden");
-        if (unsubscribeUsers) unsubscribeUsers();
-        if (unsubscribeMessages) unsubscribeMessages();
-        activeChatUser = null;
-    } catch (error) {
-        alert(error.message);
-    }
-}
-window.logout = logout;
-
-// ==============================
-// ✅ FIXED DROPDOWN MENU — NOW WORKS 100%
-// ==============================
-function toggleMenu() {
-    const mainMenu = document.getElementById("mainDropdown");
-    const settingsMenu = document.getElementById("settingsDropdown");
-
-    // Always close settings first
-    settingsMenu.classList.add("hidden");
-
-    // Toggle main menu show/hide
-    mainMenu.classList.toggle("hidden");
-}
-window.toggleMenu = toggleMenu;
-
-function showSettings() {
-    document.getElementById("mainDropdown").classList.add("hidden");
-    document.getElementById("settingsDropdown").classList.remove("hidden");
-}
-window.showSettings = showSettings;
-
-function showMainMenu() {
-    document.getElementById("settingsDropdown").classList.add("hidden");
-    document.getElementById("mainDropdown").classList.remove("hidden");
-}
-window.showMainMenu = showMainMenu;
-
-// ==============================
-// SETTINGS TOGGLES
-// ==============================
-async function toggleDarkMode() {
-    document.body.classList.toggle("dark-mode");
-    currentUser.darkMode = document.body.classList.contains("dark-mode");
-    document.getElementById("darkModeToggle").classList.toggle("active");
-    saveCurrentState();
-    try {
-        await updateDoc(doc(db, "users", currentUser.email), {
-            darkMode: currentUser.darkMode
-        });
-    } catch (e) {}
-}
-window.toggleDarkMode = toggleDarkMode;
-
-async function toggleMyStatus() {
-    currentUser.isOnline = !currentUser.isOnline;
-    document.getElementById("statusToggle").classList.toggle("active");
-    
-    const statusEl = document.getElementById("menuUserStatus");
-    statusEl.textContent = currentUser.isOnline ? "● Online" : "○ Offline";
-    statusEl.style.color = currentUser.isOnline ? "#55efc4" : "#95a5a6";
-    
-    if (activeChatUser) {
-        document.getElementById("chatHeaderStatus").className = "status-indicator " + (activeChatUser.isOnline ? "online" : "offline");
-        document.getElementById("chatHeaderStatusText").textContent = activeChatUser.isOnline ? "Active Now" : "Offline";
-    }
-    
-    saveCurrentState();
-    await updateUserStatus(currentUser.isOnline);
-}
-window.toggleMyStatus = toggleMyStatus;
-
-// ==============================
-// SWITCH USER
-// ==============================
-function switchUser(user) {
+// ---------- OPEN CHAT ----------
+function openChat(user) {
     activeChatUser = user;
 
-    document.querySelector(".chat-header h3").textContent = user.name;
-    document.getElementById("profileName").textContent = user.name;
-    document.getElementById("profileBio").textContent = user.bio || "Hey there! I am using Unichat.";
-    
-    const chatAvatar = document.getElementById("chatHeaderAvatar");
-    chatAvatar.textContent = !user.profilePic ? user.name.charAt(0).toUpperCase() : '';
-    chatAvatar.style.backgroundImage = user.profilePic ? `url(${user.profilePic})` : 'none';
-    chatAvatar.style.backgroundSize = "cover";
+    // Update header
+    document.getElementById('chatHeaderAvatar').textContent = user.avatarLetter;
+    document.getElementById('chatHeaderStatus').classList.toggle('online', user.online);
+    document.getElementById('chatHeaderName').textContent = user.name;
+    document.getElementById('chatHeaderStatusText').textContent = user.online ? 'Online' : 'Offline';
 
-    const profileAvatar = document.getElementById("profileAvatar");
-    profileAvatar.textContent = !user.profilePic ? user.name.charAt(0).toUpperCase() : '';
-    profileAvatar.style.backgroundImage = user.profilePic ? `url(${user.profilePic})` : 'none';
-    profileAvatar.style.backgroundSize = "cover";
+    // Load messages
+    const messages = JSON.parse(localStorage.getItem('unichat_messages')) || [];
+    const chatEl = document.getElementById('chatMessages');
+    chatEl.innerHTML = '';
 
-    document.getElementById("chatHeaderStatus").className = "status-indicator " + (user.isOnline ? "online" : "offline");
-    document.getElementById("chatHeaderStatusText").textContent = user.isOnline ? "Active Now" : "Offline";
-
-    document.getElementById("chatMessages").innerHTML = "";
-
-    loadMessages();
-}
-window.switchUser = switchUser;
-
-// ==============================
-// CHAT ROOM ID
-// ==============================
-function getChatRoomId(user1, user2) {
-    return [user1.email, user2.email].sort().join("_");
-}
-
-// ==============================
-// SEND MESSAGE
-// ==============================
-async function sendMessage() {
-    const input = document.getElementById("messageInput");
-    const text = input.value.trim();
-
-    if (!text || !activeChatUser) {
-        alert("Select a user and type a message first!");
-        return;
-    }
-
-    const roomId = getChatRoomId(currentUser, activeChatUser);
-
-    try {
-        await addDoc(collection(db, "chats", roomId, "messages"), {
-            text: text,
-            sender: currentUser.email,
-            receiver: activeChatUser.email,
-            createdAt: serverTimestamp()
-        });
-
-        input.value = "";
-    } catch (error) {
-        console.error("Send error:", error);
-        alert("Failed to send message: " + error.message);
-    }
-}
-window.sendMessage = sendMessage;
-
-// ==============================
-// LOAD MESSAGES
-// ==============================
-function loadMessages() {
-    if (!activeChatUser) return;
-
-    if (unsubscribeMessages) unsubscribeMessages();
-
-    const roomId = getChatRoomId(currentUser, activeChatUser);
-
-    const messagesRef = query(
-        collection(db, "chats", roomId, "messages"),
-        orderBy("createdAt", "asc")
+    const convo = messages.filter(m => 
+        (m.from === currentUser.id && m.to === user.id) ||
+        (m.from === user.id && m.to === currentUser.id)
     );
 
-    unsubscribeMessages = onSnapshot(messagesRef, (snapshot) => {
-        const chatBox = document.getElementById("chatMessages");
-        if (!chatBox) return;
-
-        chatBox.innerHTML = "";
-
-        if (snapshot.empty) {
-            chatBox.innerHTML = '<p class="no-messages">No messages yet. Say hi!</p>';
-            return;
-        }
-
-        snapshot.forEach((doc) => {
-            const msg = doc.data();
-            const div = document.createElement("div");
-
-            div.className = msg.sender === currentUser.email ? "message sent" : "message received";
-
-            const time = msg.createdAt ? new Date(msg.createdAt.toDate()).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'}) : 'Sending...';
-
-            div.innerHTML = `
-                <div class="message-content">${msg.text || ''}</div>
-                <span class="timestamp">${time}</span>
-            `;
-
-            chatBox.appendChild(div);
+    if (convo.length === 0) {
+        chatEl.innerHTML = '<p class="no-messages">No messages yet. Say hi!</p>';
+    } else {
+        convo.forEach(msg => {
+            const div = document.createElement('div');
+            div.className = `message ${msg.from === currentUser.id ? 'sent' : 'received'}`;
+            div.textContent = msg.text;
+            chatEl.appendChild(div);
         });
-
-        chatBox.scrollTop = chatBox.scrollHeight;
-    });
-}
-
-function handleKeyPress(event) {
-    if (event.key === "Enter") {
-        event.preventDefault();
-        sendMessage();
-    }
-}
-window.handleKeyPress = handleKeyPress;
-
-// ==============================
-// EMOJI PICKER
-// ==============================
-function toggleEmojiPicker() {
-    document.getElementById("emojiPicker").classList.toggle("hidden");
-}
-window.toggleEmojiPicker = toggleEmojiPicker;
-
-function showEmojiTab(tab) {
-    const content = document.getElementById("emojiContent");
-    const emojis = [
-        "😀", "😃", "😄", "😁", "😆", "😅", "😂", "🤣",
-        "😊", "😇", "🙂", "🙃", "😉", "😌", "😍", "🥰",
-        "😘", "😗", "😙", "😚", "😋", "😛", "😜", "🤪",
-        "😝", "🤗", "🤭", "🤫", "🤔", "🤐", "🤨", "😐",
-        "😑", "😶", "😏", "😒", "🙄", "😬", "🤥", "😌",
-        "😔", "😪", "🤤", "😴", "😷", "🤒", "🤕", "🤢",
-        "🤮", "🤧", "🥵", "🥶", "🥴", "😵", "🤯", "🤠",
-        "🥳", "😎", "🤓", "🧐", "😕", "😟", "🙁", "☹️"
-    ];
-    
-    if (tab === "emoji") {
-        content.innerHTML = '<div class="emoji-grid">' +
-            emojis.map(e => `<div class="emoji-item" onclick="addEmoji('${e}')">${e}</div>`).join('') +
-            '</div>';
-    } else {
-        content.innerHTML = '<p style="text-align:center;padding:20px;color:var(--text);">GIF search coming soon!</p>';
+        chatEl.scrollTop = chatEl.scrollHeight;
     }
 }
 
-function addEmoji(emoji) {
-    const input = document.getElementById("messageInput");
-    input.value += emoji;
-    document.getElementById("emojiPicker").classList.add("hidden");
-}
-window.addEmoji = addEmoji;
-window.showEmojiTab = showEmojiTab;
+// ---------- SEND MESSAGE ----------
+document.getElementById('sendBtn').addEventListener('click', sendMessage);
+document.getElementById('messageInput').addEventListener('keydown', e => e.key === 'Enter' && sendMessage());
 
-showEmojiTab("emoji");
-
-// ==============================
-// VOICE RECORDING
-// ==============================
-async function startRecording() {
-    try {
-        const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
-        mediaRecorder = new MediaRecorder(stream);
-        audioChunks = [];
-        
-        mediaRecorder.ondataavailable = e => {
-            audioChunks.push(e.data);
-        };
-        
-        mediaRecorder.onstop = () => {
-            const blob = new Blob(audioChunks, { type: "audio/webm" });
-            const url = URL.createObjectURL(blob);
-            
-            const container = document.getElementById("chatMessages");
-            const div = document.createElement("div");
-            div.className = "message sent";
-            div.innerHTML = `<audio controls src="${url}" style="width:200px;">`;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        };
-        
-        mediaRecorder.start();
-    } catch (error) {
-        alert("Microphone permission denied");
-    }
-}
-window.startRecording = startRecording;
-
-function stopRecording() {
-    if (mediaRecorder && mediaRecorder.state !== "inactive") {
-        mediaRecorder.stop();
-    }
-}
-window.stopRecording = stopRecording;
-
-// ==============================
-// IMAGE SEND
-// ==============================
-function sendImage(input) {
-    if (input.files && input.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            const container = document.getElementById("chatMessages");
-            const div = document.createElement("div");
-            div.className = "message sent";
-            div.innerHTML = `<img src="${e.target.result}" style="max-width:200px;border-radius:10px;">`;
-            container.appendChild(div);
-            container.scrollTop = container.scrollHeight;
-        };
-        reader.readAsDataURL(input.files[0]);
-    }
-}
-window.sendImage = sendImage;
-
-// ==============================
-// CALLS
-// ==============================
-function startAudioCall() {
-    alert("Audio Call Started (Feature coming soon)");
-}
-window.startAudioCall = startAudioCall;
-
-function startVideoCall() {
-    alert("Video Call Started (Feature coming soon)");
-}
-window.startVideoCall = startVideoCall;
-
-// ==============================
-// RIGHT SIDEBAR
-// ==============================
-function toggleRightSidebar() {
-    const sidebar = document.getElementById("rightSidebar");
-    sidebar.classList.toggle("active");
-    
-    if (sidebar.classList.contains("active")) {
-        if (activeChatUser && activeChatUser.email === currentUser.email) {
-            loadMyProfileToSidebar();
-        } else if (activeChatUser) {
-            loadUserProfileToSidebar();
-        }
-    } else {
-        closeSidebarEditMode();
-    }
-}
-window.toggleRightSidebar = toggleRightSidebar;
-
-function loadMyProfileToSidebar() {
-    document.getElementById("sidebarViewMode").classList.remove("hidden");
-    document.getElementById("sidebarEditMode").classList.add("hidden");
-
-    document.getElementById("profileName").textContent = currentUser.name;
-    document.getElementById("profileBio").textContent = currentUser.bio;
-
-    const profileAvatar = document.getElementById("profileAvatar");
-    profileAvatar.textContent = !currentUser.profilePic ? currentUser.name.charAt(0).toUpperCase() : '';
-    profileAvatar.style.backgroundImage = currentUser.profilePic ? `url(${currentUser.profilePic})` : 'none';
-    profileAvatar.style.backgroundSize = "cover";
-    
-    document.getElementById("blockBtn").classList.add("hidden");
-    document.getElementById("editProfileBtn").classList.remove("hidden");
-}
-
-function loadUserProfileToSidebar() {
-    document.getElementById("sidebarViewMode").classList.remove("hidden");
-    document.getElementById("sidebarEditMode").classList.add("hidden");
-
-    document.getElementById("profileName").textContent = activeChatUser.name;
-    document.getElementById("profileBio").textContent = activeChatUser.bio || "Hey there! I am using Unichat.";
-
-    const profileAvatar = document.getElementById("profileAvatar");
-    profileAvatar.textContent = !activeChatUser.profilePic ? activeChatUser.name.charAt(0).toUpperCase() : '';
-    profileAvatar.style.backgroundImage = activeChatUser.profilePic ? `url(${activeChatUser.profilePic})` : 'none';
-    profileAvatar.style.backgroundSize = "cover";
-    
-    document.getElementById("blockBtn").classList.remove("hidden");
-    document.getElementById("editProfileBtn").classList.add("hidden");
-}
-
-function openSidebarEditProfile() {
-    document.getElementById("sidebarViewMode").classList.add("hidden");
-    document.getElementById("sidebarEditMode").classList.remove("hidden");
-    
-    document.getElementById("editSidebarName").value = currentUser.name;
-    document.getElementById("editSidebarBio").value = currentUser.bio;
-    
-    const editAvatar = document.getElementById("editProfileAvatar");
-    editAvatar.textContent = !currentUser.profilePic ? currentUser.name.charAt(0).toUpperCase() : '';
-    editAvatar.style.backgroundImage = currentUser.profilePic ? `url(${currentUser.profilePic})` : 'none';
-    editAvatar.style.backgroundSize = "cover";
-}
-window.openSidebarEditProfile = openSidebarEditProfile;
-
-function closeSidebarEditMode() {
-    document.getElementById("sidebarEditMode").classList.add("hidden");
-    document.getElementById("sidebarViewMode").classList.remove("hidden");
-}
-window.closeSidebarEditMode = closeSidebarEditMode;
-
-function previewProfilePic(event) {
-    const reader = new FileReader();
-    reader.onload = function(e) {
-        const avatar = document.getElementById("editProfileAvatar");
-        avatar.style.backgroundImage = `url("${e.target.result}")`;
-        avatar.style.backgroundSize = "cover";
-        avatar.textContent = "";
-    };
-    reader.readAsDataURL(event.target.files[0]);
-}
-window.previewProfilePic = previewProfilePic;
-
-// ==============================
-// FIX EDIT PROFILE BUTTONS
-// ==============================
-
-// Right sidebar edit button
-document.getElementById("editProfileBtn").addEventListener("click", () => {
-
-    const sidebar = document.getElementById("rightSidebar");
-
-    // Force sidebar open
-    sidebar.classList.add("active");
-
-    // Open edit mode
-    openSidebarEditProfile();
-});
-
-// Settings menu edit button
-document.getElementById("editBtn").addEventListener("click", () => {
-
-    const sidebar = document.getElementById("rightSidebar");
-
-    // Open sidebar first
-    sidebar.classList.add("active");
-
-    // Open edit profile
-    openSidebarEditProfile();
-
-    // Close dropdowns
-    document.getElementById("settingsDropdown").classList.add("hidden");
-    document.getElementById("mainDropdown").classList.add("hidden");
-});
-
-// Close edit mode
-document.getElementById("closeEditBtn").addEventListener("click", () => {
-
-    closeSidebarEditMode();
-
-});
-
-// Save profile
-document.getElementById("saveProfileBtn").addEventListener("click", () => {
-
-    saveSidebarProfile();
-
-});
-
-// Preview profile image
-document.getElementById("editProfilePic").addEventListener("change", previewProfilePic);
-
-document.getElementById("openProfileBtn").addEventListener("click", () => {
-
-    const sidebar = document.getElementById("rightSidebar");
-
-    sidebar.classList.add("active");
-
-    if (activeChatUser) {
-        loadUserProfileToSidebar();
-    } else {
-        loadMyProfileToSidebar();
-    }
-
-});
-
-async function saveSidebarProfile() {
-    const newName = document.getElementById("editSidebarName").value.trim();
-    const newBio = document.getElementById("editSidebarBio").value.trim();
-    const picInput = document.getElementById("editProfilePic");
-
-    if (newName) currentUser.name = newName;
-    if (newBio) currentUser.bio = newBio;
-
-    if (picInput.files && picInput.files[0]) {
-        const reader = new FileReader();
-        reader.onload = function(e) {
-            currentUser.profilePic = e.target.result;
-            updateProfileInFirestore();
-        };
-        reader.readAsDataURL(picInput.files[0]);
-    } else {
-        updateProfileInFirestore();
-    }
-}
-window.saveSidebarProfile = saveSidebarProfile;
-
-async function updateProfileInFirestore() {
-    try {
-        await updateDoc(doc(db, "users", currentUser.email), {
-            name: currentUser.name,
-            bio: currentUser.bio,
-            profilePic: currentUser.profilePic
-        });
-        saveCurrentState();
-        applyUserSettings();
-        closeSidebarEditMode();
-        alert("Profile updated successfully!");
-    } catch (e) {
-        alert("Error updating profile");
-    }
-}
-
-// ==============================
-// BLOCK USER
-// ==============================
-function toggleBlockUser() {
+function sendMessage() {
     if (!activeChatUser) return;
-    
-    const index = blockedUsers.indexOf(activeChatUser.email);
-    if (index === -1) {
-        blockedUsers.push(activeChatUser.email);
-        document.getElementById("blockBtn").innerHTML = '<i class="fas fa-ban"></i> Unblock User';
-        alert("User blocked");
-    } else {
-        blockedUsers.splice(index, 1);
-        document.getElementById("blockBtn").innerHTML = '<i class="fas fa-ban"></i> Block User';
-        alert("User unblocked");
-    }
-}
-window.toggleBlockUser = toggleBlockUser;
+    const input = document.getElementById('messageInput');
+    const text = input.value.trim();
+    if (!text) return;
 
-// ==============================
-// SEARCH USERS
-// ==============================
-function filterChat(keyword) {
-    const users = document.querySelectorAll(".user");
-    keyword = keyword.toLowerCase();
-    
-    users.forEach(userEl => {
-        const name = userEl.querySelector("h4").textContent.toLowerCase();
-        const email = userEl.querySelector("p").textContent.toLowerCase();
-        
-        if (name.includes(keyword) || email.includes(keyword)) {
-            userEl.style.display = "flex";
-        } else {
-            userEl.style.display = "none";
-        }
+    const messages = JSON.parse(localStorage.getItem('unichat_messages')) || [];
+    messages.push({
+        from: currentUser.id,
+        to: activeChatUser.id,
+        text,
+        time: Date.now()
+    });
+    localStorage.setItem('unichat_messages', JSON.stringify(messages));
+
+    input.value = '';
+    openChat(activeChatUser);
+}
+
+// ---------- PROFILE SIDEBAR ----------
+document.getElementById('openProfileBtn').addEventListener('click', () => {
+    const sidebar = document.getElementById('rightSidebar');
+    sidebar.classList.remove('hidden');
+
+    document.getElementById('profileAvatar').textContent = activeChatUser.avatarLetter;
+    document.getElementById('profileName').textContent = activeChatUser.name;
+    document.getElementById('profileStatusIndicator').classList.toggle('online', activeChatUser.online);
+    document.getElementById('profileStatus').textContent = activeChatUser.online ? '● Online' : '● Offline';
+    document.getElementById('profileBio').textContent = activeChatUser.bio;
+
+    document.getElementById('sidebarViewMode').classList.remove('hidden');
+    document.getElementById('sidebarEditMode').classList.add('hidden');
+});
+
+document.getElementById('closeSidebarBtn').addEventListener('click', () => {
+    document.getElementById('rightSidebar').classList.add('hidden');
+});
+
+// ---------- EDIT PROFILE ----------
+document.getElementById('editProfileBtn').addEventListener('click, #editBtn').addEventListener('click', () => {
+    document.getElementById('sidebarViewMode').classList.add('hidden');
+    document.getElementById('sidebarEditMode').classList.remove('hidden');
+
+    document.getElementById('editSidebarName').value = currentUser.name;
+    document.getElementById('editSidebarBio').value = currentUser.bio;
+});
+
+document.getElementById('saveProfileBtn').addEventListener('click', () => {
+    currentUser.name = document.getElementById('editSidebarName').value.trim() || currentUser.name;
+    currentUser.bio = document.getElementById('editSidebarBio').value.trim() || currentUser.bio;
+    currentUser.avatarLetter = currentUser.name.charAt(0).toUpperCase();
+
+    saveUsers();
+    updateHeaderMenu();
+    loadUserList();
+    document.getElementById('rightSidebar').classList.add('hidden');
+});
+
+document.getElementById('closeEditBtn').addEventListener('click', () => {
+    document.getElementById('sidebarEditMode').classList.add('hidden');
+    document.getElementById('sidebarViewMode').classList.remove('hidden');
+});
+
+// ---------- EMOJI PICKER ----------
+document.getElementById('emojiBtn').addEventListener('click', () => {
+    document.getElementById('emojiPicker').classList.toggle('hidden');
+    loadEmojis();
+});
+
+function loadEmojis() {
+    const emojis = ['😀','😁','😂','🤣','😃','😄','😅','😆','😉','😊','😋','😎','😍','🥰','😘','😗','😙','😚','🙂','🤗','🤩','🤔','🤨','😐','😑','😶','🙄','😏','😣','😥','😮','🤐','😯','😪','😫','🥱','😴','😌','😛','😜','😝','🤤','😒','😓','😔','😕','🙃','🤑','😲','☹️','🙁','😖','😞','😟','😤','😢','😭','😦','😧','😨','😩','🤯','😬','😰','😱','🥶','🥵','😳','🤪','😵','😡','😠','🤬','😷','🤒','🤕','🤢','🤮','🤧','😇','💋','💌','💘','💝','💖','💗','💓','💞','💕','💟','❣️','💔','❤️','🧡','💛','💚','💙','💜','🤎','🖤','🤍','💯','💢','💥','💫','💦','💨','🕳️','💣','💬','🗨️','🗯️','💭','💤'];
+    const cont = document.getElementById('emojiContent');
+    if (cont.children.length) return;
+
+    emojis.forEach(e => {
+        const span = document.createElement('span');
+        span.className = 'emoji-item';
+        span.textContent = e;
+        span.addEventListener('click', () => {
+            document.getElementById('messageInput').value += e;
+        });
+        cont.appendChild(span);
     });
 }
-window.filterChat = filterChat;
 
-// ==============================
-// GROUP CHAT
-// ==============================
-function createGroup() {
-    alert("Create Group feature coming soon!");
+// ---------- SEARCH USERS ----------
+document.getElementById('searchChat').addEventListener('input', e => {
+    const val = e.target.value.toLowerCase();
+    document.querySelectorAll('.user-item').forEach(el => {
+        const name = el.querySelector('h4').textContent.toLowerCase();
+        el.style.display = name.includes(val) ? 'flex' : 'none';
+    });
+});
+
+// ---------- HELPER ----------
+function saveUsers() {
+    const all = JSON.parse(localStorage.getItem('unichat_users')) || [];
+    const idx = all.findIndex(u => u.id === currentUser.id);
+    if (idx !== -1) all[idx] = currentUser;
+    localStorage.setItem('unichat_users', JSON.stringify(all));
 }
-window.createGroup = createGroup;
 
-// ==============================
-// INITIAL CHECK
-// ==============================
-window.addEventListener("DOMContentLoaded", () => {
-
-    const splash = document.getElementById("splashScreen");
-
-    if (splash) {
-        splash.addEventListener("click", startApp);
-        splash.addEventListener("touchstart", startApp);
-    }
-
-    document.getElementById("headermenu").addEventListener("click", toggleMenu);
-
-document.getElementById("settingsBtn").addEventListener("click", showSettings);
-
-document.getElementById("backToMenuBtn").addEventListener("click", showMainMenu);
-
-document.getElementById("logoutBtn").addEventListener("click", logout);
-
-document.getElementById("darkBtn").addEventListener("click", toggleDarkMode);
-
-document.getElementById("statusBtn").addEventListener("click", toggleMyStatus);
-
-document.getElementById("sendBtn").addEventListener("click", sendMessage);
-
-document.getElementById("messageInput").addEventListener("keypress", handleKeyPress);
-
-document.getElementById("emojiBtn").addEventListener("click", toggleEmojiPicker);
-
-document.getElementById("audioCallBtn").addEventListener("click", startAudioCall);
-
-document.getElementById("videoCallBtn").addEventListener("click", startVideoCall);
-
-document.getElementById("blockBtn").addEventListener("click", toggleBlockUser);
-
-document.getElementById("searchChat").addEventListener("input", (e) => {
-    filterChat(e.target.value);
-});
-
-document.getElementById("createGroupBtn").addEventListener("click", createGroup);
-
-document.getElementById("imageInput").addEventListener("change", function () {
-    sendImage(this);
-});
-
-});
-
-// ==============================
-// ✅ FIXED CLICK OUTSIDE CLOSE — NO MORE BUGS
-// ==============================
-document.addEventListener("click", (e) => {
-    const menuBtn = document.querySelector(".menu-header");
-    const mainMenu = document.getElementById("mainDropdown");
-    const settingsMenu = document.getElementById("settingsDropdown");
-
-    // Close only if clicking outside menu button AND outside menu
-    if (
-        mainMenu &&
-        !mainMenu.classList.contains("hidden") &&
-        !menuBtn.contains(e.target) &&
-        !mainMenu.contains(e.target) &&
-        !settingsMenu.contains(e.target)
-    ) {
-        mainMenu.classList.add("hidden");
-        settingsMenu.classList.add("hidden");
-    }
-
-    // Close emoji picker when clicking outside
-    const emojiBtn = document.getElementById("emojiBtn");
-    const emojiBtn = document.querySelector(".icon-btn[onclick='toggleEmojiPicker()']");
-    if (
-        emojiPicker &&
-        !emojiPicker.classList.contains("hidden") &&
-        !emojiPicker.contains(e.target) &&
-        emojiBtn && !emojiBtn.contains(e.target)
-    ) {
-        emojiPicker.classList.add("hidden");
-    }
-});
-
+// Load saved dark mode
+if (localStorage.getItem('unichat_dark') === 'true') {
+    darkMode = true;
+    document.body.classList.add('dark-mode');
+}
