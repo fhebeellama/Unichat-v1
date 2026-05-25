@@ -81,7 +81,7 @@ function clearSession() {
 }
 
 // ==============================
-// ✅ FIXED SPLASH SCREEN LOGIC
+// SPLASH SCREEN
 // ==============================
 function startApp() {
     if (splashClicked) return;
@@ -89,29 +89,24 @@ function startApp() {
 
     const splash = document.getElementById("splashScreen");
     if (splash) {
-        splash.classList.add("hidden"); // ✅ Use class instead of style
+        splash.style.display = "none";
     }
 
     if (loadSavedState()) {
         showDashboardLoggedIn();
     } else {
-        // ✅ Show auth, hide dashboard
         document.querySelector(".auth-container").classList.remove("hidden");
-        document.getElementById("dashboard").classList.add("hidden");
         document.getElementById("signinForm").classList.remove("hidden");
-        document.getElementById("signupForm").classList.add("hidden");
     }
 }
+window.startApp = startApp;
 
 // ==============================
-// ✅ FIXED DASHBOARD SHOW/HIDE
+// DASHBOARD
 // ==============================
 function showDashboardLoggedIn() {
-    // ✅ Hide auth, show dashboard properly
     document.querySelector(".auth-container").classList.add("hidden");
-    const dashboard = document.getElementById("dashboard");
-    dashboard.classList.remove("hidden");
-    
+    document.getElementById("dashboard").style.display = "flex";
     applyUserSettings();
     if (unsubscribeUsers) unsubscribeUsers();
     loadUsers();
@@ -183,9 +178,9 @@ function loadUsers() {
             const userDiv = document.createElement("div");
             userDiv.className = "user";
 
-            userDiv.addEventListener('click', () => {
+            userDiv.onclick = () => {
                 switchUser(user);
-            });
+            };
 
             userDiv.innerHTML = `
                 <div class="avatar-container">
@@ -306,7 +301,7 @@ async function logout() {
         await updateUserStatus(false);
         await signOut(auth);
         clearSession();
-        document.getElementById("dashboard").classList.add("hidden");
+        document.getElementById("dashboard").style.display = "none";
         document.querySelector(".auth-container").classList.remove("hidden");
         document.getElementById("signinForm").classList.remove("hidden");
         document.getElementById("signupForm").classList.add("hidden");
@@ -317,6 +312,7 @@ async function logout() {
         alert(error.message);
     }
 }
+window.logout = logout;
 
 // ==============================
 // ✅ FIXED DROPDOWN MENU — NOW WORKS 100%
@@ -331,16 +327,19 @@ function toggleMenu() {
     // Toggle main menu show/hide
     mainMenu.classList.toggle("hidden");
 }
+window.toggleMenu = toggleMenu;
 
 function showSettings() {
     document.getElementById("mainDropdown").classList.add("hidden");
     document.getElementById("settingsDropdown").classList.remove("hidden");
 }
+window.showSettings = showSettings;
 
 function showMainMenu() {
     document.getElementById("settingsDropdown").classList.add("hidden");
     document.getElementById("mainDropdown").classList.remove("hidden");
 }
+window.showMainMenu = showMainMenu;
 
 // ==============================
 // SETTINGS TOGGLES
@@ -356,6 +355,7 @@ async function toggleDarkMode() {
         });
     } catch (e) {}
 }
+window.toggleDarkMode = toggleDarkMode;
 
 async function toggleMyStatus() {
     currentUser.isOnline = !currentUser.isOnline;
@@ -373,6 +373,7 @@ async function toggleMyStatus() {
     saveCurrentState();
     await updateUserStatus(currentUser.isOnline);
 }
+window.toggleMyStatus = toggleMyStatus;
 
 // ==============================
 // SWITCH USER
@@ -401,6 +402,7 @@ function switchUser(user) {
 
     loadMessages();
 }
+window.switchUser = switchUser;
 
 // ==============================
 // CHAT ROOM ID
@@ -437,6 +439,7 @@ async function sendMessage() {
         alert("Failed to send message: " + error.message);
     }
 }
+window.sendMessage = sendMessage;
 
 // ==============================
 // LOAD MESSAGES
@@ -490,6 +493,7 @@ function handleKeyPress(event) {
         sendMessage();
     }
 }
+window.handleKeyPress = handleKeyPress;
 
 // ==============================
 // EMOJI PICKER
@@ -497,6 +501,7 @@ function handleKeyPress(event) {
 function toggleEmojiPicker() {
     document.getElementById("emojiPicker").classList.toggle("hidden");
 }
+window.toggleEmojiPicker = toggleEmojiPicker;
 
 function showEmojiTab(tab) {
     const content = document.getElementById("emojiContent");
@@ -513,12 +518,8 @@ function showEmojiTab(tab) {
     
     if (tab === "emoji") {
         content.innerHTML = '<div class="emoji-grid">' +
-            emojis.map(e => `<div class="emoji-item">${e}</div>`).join('') +
+            emojis.map(e => `<div class="emoji-item" onclick="addEmoji('${e}')">${e}</div>`).join('') +
             '</div>';
-            
-        document.querySelectorAll('.emoji-item').forEach(item => {
-            item.addEventListener('click', () => addEmoji(item.textContent));
-        });
     } else {
         content.innerHTML = '<p style="text-align:center;padding:20px;color:var(--text);">GIF search coming soon!</p>';
     }
@@ -529,6 +530,10 @@ function addEmoji(emoji) {
     input.value += emoji;
     document.getElementById("emojiPicker").classList.add("hidden");
 }
+window.addEmoji = addEmoji;
+window.showEmojiTab = showEmojiTab;
+
+showEmojiTab("emoji");
 
 // ==============================
 // VOICE RECORDING
@@ -560,12 +565,14 @@ async function startRecording() {
         alert("Microphone permission denied");
     }
 }
+window.startRecording = startRecording;
 
 function stopRecording() {
     if (mediaRecorder && mediaRecorder.state !== "inactive") {
         mediaRecorder.stop();
     }
 }
+window.stopRecording = stopRecording;
 
 // ==============================
 // IMAGE SEND
@@ -584,6 +591,7 @@ function sendImage(input) {
         reader.readAsDataURL(input.files[0]);
     }
 }
+window.sendImage = sendImage;
 
 // ==============================
 // CALLS
@@ -591,10 +599,12 @@ function sendImage(input) {
 function startAudioCall() {
     alert("Audio Call Started (Feature coming soon)");
 }
+window.startAudioCall = startAudioCall;
 
 function startVideoCall() {
     alert("Video Call Started (Feature coming soon)");
 }
+window.startVideoCall = startVideoCall;
 
 // ==============================
 // RIGHT SIDEBAR
@@ -613,6 +623,7 @@ function toggleRightSidebar() {
         closeSidebarEditMode();
     }
 }
+window.toggleRightSidebar = toggleRightSidebar;
 
 function loadMyProfileToSidebar() {
     document.getElementById("sidebarViewMode").classList.remove("hidden");
@@ -658,11 +669,13 @@ function openSidebarEditProfile() {
     editAvatar.style.backgroundImage = currentUser.profilePic ? `url(${currentUser.profilePic})` : 'none';
     editAvatar.style.backgroundSize = "cover";
 }
+window.openSidebarEditProfile = openSidebarEditProfile;
 
 function closeSidebarEditMode() {
     document.getElementById("sidebarEditMode").classList.add("hidden");
     document.getElementById("sidebarViewMode").classList.remove("hidden");
 }
+window.closeSidebarEditMode = closeSidebarEditMode;
 
 function previewProfilePic(event) {
     const reader = new FileReader();
@@ -674,6 +687,7 @@ function previewProfilePic(event) {
     };
     reader.readAsDataURL(event.target.files[0]);
 }
+window.previewProfilePic = previewProfilePic;
 
 async function saveSidebarProfile() {
     const newName = document.getElementById("editSidebarName").value.trim();
@@ -694,6 +708,7 @@ async function saveSidebarProfile() {
         updateProfileInFirestore();
     }
 }
+window.saveSidebarProfile = saveSidebarProfile;
 
 async function updateProfileInFirestore() {
     try {
@@ -728,6 +743,7 @@ function toggleBlockUser() {
         alert("User unblocked");
     }
 }
+window.toggleBlockUser = toggleBlockUser;
 
 // ==============================
 // SEARCH USERS
@@ -747,6 +763,7 @@ function filterChat(keyword) {
         }
     });
 }
+window.filterChat = filterChat;
 
 // ==============================
 // GROUP CHAT
@@ -754,86 +771,44 @@ function filterChat(keyword) {
 function createGroup() {
     alert("Create Group feature coming soon!");
 }
+window.createGroup = createGroup;
 
 // ==============================
-// ✅ INITIALIZE ALL EVENT LISTENERS HERE — CRITICAL FIX
+// INITIAL CHECK
 // ==============================
 window.addEventListener("DOMContentLoaded", () => {
-    // Splash screen click
-    document.getElementById("splashScreen").addEventListener("click", startApp);
+    // Wait for splash click
+});
 
-    // Menu dropdown
-    document.getElementById("headermenu").addEventListener("click", toggleMenu);
-    document.getElementById("settingsBtn").addEventListener("click", showSettings);
-    document.getElementById("backToMenuBtn").addEventListener("click", showMainMenu);
-    document.getElementById("logoutBtn").addEventListener("click", logout);
+// ==============================
+// ✅ FIXED CLICK OUTSIDE CLOSE — NO MORE BUGS
+// ==============================
+document.addEventListener("click", (e) => {
+    const menuBtn = document.querySelector(".menu-header");
+    const mainMenu = document.getElementById("mainDropdown");
+    const settingsMenu = document.getElementById("settingsDropdown");
 
-    // Settings toggles
-    document.getElementById("statusBtn").addEventListener("click", toggleMyStatus);
-    document.getElementById("darkBtn").addEventListener("click", toggleDarkMode);
-    document.getElementById("editBtn").addEventListener("click", openSidebarEditProfile);
+    // Close only if clicking outside menu button AND outside menu
+    if (
+        mainMenu &&
+        !mainMenu.classList.contains("hidden") &&
+        !menuBtn.contains(e.target) &&
+        !mainMenu.contains(e.target) &&
+        !settingsMenu.contains(e.target)
+    ) {
+        mainMenu.classList.add("hidden");
+        settingsMenu.classList.add("hidden");
+    }
 
-    // Right sidebar
-    document.getElementById("openProfileBtn").addEventListener("click", toggleRightSidebar);
-    document.getElementById("closeSidebarBtn").addEventListener("click", toggleRightSidebar);
-    document.getElementById("closeEditBtn").addEventListener("click", closeSidebarEditMode);
-    document.getElementById("saveProfileBtn").addEventListener("click", saveSidebarProfile);
-    document.getElementById("editProfilePic").addEventListener("change", previewProfilePic);
-    document.getElementById("blockBtn").addEventListener("click", toggleBlockUser);
-
-    // Chat
-    document.getElementById("sendBtn").addEventListener("click", sendMessage);
-    document.getElementById("messageInput").addEventListener("keypress", handleKeyPress);
-    document.getElementById("imageInput").addEventListener("change", function() { sendImage(this); });
-
-    // Emoji
-    document.getElementById("emojiBtn").addEventListener("click", toggleEmojiPicker);
-    document.querySelectorAll('.emoji-tab-btn').forEach(btn => {
-        btn.addEventListener('click', () => showEmojiTab(btn.dataset.tab));
-    });
-    showEmojiTab("emoji");
-
-    // Mic
-    document.getElementById("micBtn").addEventListener("mousedown", startRecording);
-    document.getElementById("micBtn").addEventListener("mouseup", stopRecording);
-    document.getElementById("micBtn").addEventListener("mouseleave", stopRecording);
-
-    // Search
-    document.getElementById("searchChat").addEventListener("input", (e) => filterChat(e.target.value));
-
-    // Calls
-    document.getElementById("audioCallBtn").addEventListener("click", startAudioCall);
-    document.getElementById("videoCallBtn").addEventListener("click", startVideoCall);
-    document.getElementById("createGroupBtn").addEventListener("click", createGroup);
-
-    // ✅ CLICK OUTSIDE CLOSE — NO MORE BUGS
-    document.addEventListener("click", (e) => {
-        const menuBtn = document.querySelector(".menu-header");
-        const mainMenu = document.getElementById("mainDropdown");
-        const settingsMenu = document.getElementById("settingsDropdown");
-
-        // Close only if clicking outside menu button AND outside menu
-        if (
-            mainMenu &&
-            !mainMenu.classList.contains("hidden") &&
-            !menuBtn.contains(e.target) &&
-            !mainMenu.contains(e.target) &&
-            !settingsMenu.contains(e.target)
-        ) {
-            mainMenu.classList.add("hidden");
-            settingsMenu.classList.add("hidden");
-        }
-
-        // Close emoji picker when clicking outside
-        const emojiPicker = document.getElementById("emojiPicker");
-        const emojiBtn = document.querySelector(".icon-btn#emojiBtn");
-        if (
-            emojiPicker &&
-            !emojiPicker.classList.contains("hidden") &&
-            !emojiPicker.contains(e.target) &&
-            !emojiBtn.contains(e.target)
-        ) {
-            emojiPicker.classList.add("hidden");
-        }
-    });
+    // Close emoji picker when clicking outside
+    const emojiPicker = document.getElementById("emojiPicker");
+    const emojiBtn = document.querySelector(".icon-btn[onclick='toggleEmojiPicker()']");
+    if (
+        emojiPicker &&
+        !emojiPicker.classList.contains("hidden") &&
+        !emojiPicker.contains(e.target) &&
+        !emojiBtn.contains(e.target)
+    ) {
+        emojiPicker.classList.add("hidden");
+    }
 });

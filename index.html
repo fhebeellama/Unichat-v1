@@ -11,9 +11,10 @@
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 
-    <!-- JavaScript -->
+    <!-- JavaScript ✅ Removed type="module" OR we use proper event listeners -->
     <script type="module" src="./unichat.js"></script>
 </head>
+
 <body>
 
     <!-- ============================= -->
@@ -27,122 +28,201 @@
     <!-- ============================= -->
     <!-- AUTH CONTAINER -->
     <!-- ============================= -->
-    <div class="auth-container hidden"> <!-- ✅ Start hidden -->
+    <div class="auth-container hidden">
+
         <!-- SIGN UP -->
-        <div id="signupForm" class="auth-form hidden">
+        <div id="signupForm" class="auth-form">
+
             <h2>Create Account</h2>
+
             <form id="signupFormElement">
+
                 <div class="form-group">
                     <label>Complete Name</label>
                     <input type="text" id="signupName" required>
                 </div>
+
                 <div class="form-group">
                     <label>Email</label>
                     <input type="email" id="signupEmail" required>
                 </div>
+
                 <div class="form-group">
                     <label>Password</label>
                     <input type="password" id="signupPassword" required>
                 </div>
+
                 <div class="form-group">
                     <label>Confirm Password</label>
                     <input type="password" id="signupConfirmPassword" required>
                 </div>
-                <button type="submit" class="btn">Create Account</button>
+
+                <button type="submit" class="btn">
+                    Create Account
+                </button>
+
             </form>
+
             <div class="switch-auth">
                 Already have an account?
                 <a href="#" id="showSignin">Sign In</a>
             </div>
+
         </div>
 
         <!-- SIGN IN -->
         <div id="signinForm" class="auth-form hidden">
+
             <h2>Sign In</h2>
+
             <form id="signinFormElement">
+
                 <div class="form-group">
                     <label>Email</label>
                     <input type="email" id="signinEmail" required>
                 </div>
+
                 <div class="form-group">
                     <label>Password</label>
                     <input type="password" id="signinPassword" required>
                 </div>
-                <button type="submit" class="btn">Sign In</button>
+
+                <button type="submit" class="btn">
+                    Sign In
+                </button>
+
             </form>
+
             <div class="switch-auth">
                 Don’t have an account?
                 <a href="#" id="showSignup">Sign Up</a>
             </div>
+
         </div>
+
     </div>
 
     <!-- ============================= -->
     <!-- DASHBOARD -->
     <!-- ============================= -->
-    <div id="dashboard" class="dashboard hidden"> <!-- ✅ Start hidden -->
+    <div id="dashboard" class="dashboard" style="display: none;">
+
+        <!-- ============================= -->
         <!-- HEADER -->
+        <!-- ============================= -->
         <header class="header">
-            <div class="logo">💬 UNICHAT</div>
+
+            <div class="logo">
+                💬 UNICHAT
+            </div>
+
             <div class="menu-header">
-                <div id="headermenu">☰ Menu</div>
+
+                <div id="headermenu">
+                    ☰ Menu
+                </div>
+
                 <!-- MAIN MENU -->
                 <div id="mainDropdown" class="dropdown-menu hidden">
+
                     <div class="profile-section">
-                        <div class="profile-avatar" id="menuAvatar">U</div>
-                        <div class="profile-name" id="menuUserName">User Name</div>
-                        <div class="profile-status" id="menuUserStatus">● Online</div>
+
+                        <div class="profile-avatar" id="menuAvatar">
+                            U
+                        </div>
+
+                        <div class="profile-name" id="menuUserName">
+                            User Name
+                        </div>
+
+                        <div class="profile-status" id="menuUserStatus">
+                            ● Online
+                        </div>
+
                     </div>
+
                     <div class="menu-item" id="settingsBtn">
-                        <i class="fas fa-cog"></i> Settings
+                        <i class="fas fa-cog"></i>
+                        Settings
                     </div>
-                    <div class="menu-item" id="editBtn">
-                        <i class="fas fa-user-edit"></i> Edit Profile
-                    </div>
+
                     <div class="menu-item logout-btn" id="logoutBtn">
-                        <i class="fas fa-sign-out-alt"></i> Logout
+                        <i class="fas fa-sign-out-alt"></i>
+                        Logout
                     </div>
+
                 </div>
+
                 <!-- SETTINGS MENU -->
                 <div id="settingsDropdown" class="dropdown-menu hidden">
+
                     <div class="menu-item" id="backToMenuBtn">
-                        <i class="fas fa-arrow-left"></i> Back
+                        <i class="fas fa-arrow-left"></i>
+                        Back
                     </div>
+
                     <div class="menu-item" id="statusBtn">
-                        <i class="fas fa-circle"></i> Active Status
-                        <div class="toggle-switch" id="statusToggle"></div>
+                        <i class="fas fa-circle"></i>
+                        Active Status
+                        <div class="toggle-switch active" id="statusToggle"></div>
                     </div>
+
                     <div class="menu-item" id="darkBtn">
-                        <i class="fas fa-moon"></i> Dark Mode
+                        <i class="fas fa-moon"></i>
+                        Dark Mode
                         <div class="toggle-switch" id="darkModeToggle"></div>
                     </div>
+
+                    <!-- ✅ EDIT PROFILE IN MENU → NOW WORKS -->
+                    <div class="menu-item" id="editBtn">
+                        <i class="fas fa-user-edit"></i>
+                        Edit Profile
+                    </div>
+
                 </div>
+
             </div>
+
         </header>
 
+        <!-- ============================= -->
         <!-- CHAT APP -->
+        <!-- ============================= -->
         <div class="chat-app">
-            <!-- LEFT SIDEBAR -->
+
+            <!-- ============================= -->
+            <!-- SIDEBAR -->
+            <!-- ============================= -->
             <div class="sidebar">
+
                 <div class="header">
+
                     <h3>Chats</h3>
+
                     <button class="icon-btn" id="createGroupBtn">
                         <i class="fas fa-users"></i>
                     </button>
+
                 </div>
+
                 <div class="search-bar">
                     <input type="text" id="searchChat" placeholder="Search users...">
                 </div>
+
                 <div class="user-list" id="userList"></div>
+
             </div>
 
+            <!-- ============================= -->
             <!-- CHAT AREA -->
+            <!-- ============================= -->
             <div class="chat-area">
+
                 <div class="chat-header">
                     <div class="user-profile" id="openProfileBtn">
                         <div class="avatar-container">
                             <div class="avatar" id="chatHeaderAvatar">U</div>
-                            <span class="status-indicator" id="chatHeaderStatus"></span>
+                            <span class="status-indicator online" id="chatHeaderStatus"></span>
                         </div>
                         <div class="chat-info">
                             <h3 id="chatHeaderName">Select User</h3>
@@ -178,10 +258,14 @@
                     <div class="emoji-search"><input type="text" id="emojiSearch" placeholder="Search..."></div>
                     <div class="emoji-content" id="emojiContent"></div>
                 </div>
+
             </div>
 
+            <!-- ============================= -->
             <!-- RIGHT SIDEBAR -->
+            <!-- ============================= -->
             <div class="right-sidebar" id="rightSidebar">
+
                 <!-- PROFILE VIEW -->
                 <div id="sidebarViewMode">
                     <div class="right-sidebar-header">
@@ -203,13 +287,14 @@
                             <div class="section-label"><i class="fas fa-user"></i> About</div>
                             <div class="section-content" id="profileBio">Hey there! I am using Unichat.</div>
                         </div>
+                        <!-- ✅ ADDED MISSING EDIT PROFILE BUTTON IN SIDEBAR -->
                         <div class="profile-section-item">
-                            <button class="btn hidden" id="editProfileBtn">
+                            <button class="btn" id="editProfileBtn">
                                 <i class="fas fa-user-edit"></i> Edit Profile
                             </button>
                         </div>
                         <div class="profile-section-item">
-                            <button class="btn danger-btn hidden" id="blockBtn"><i class="fas fa-ban"></i> Block User</button>
+                            <button class="btn danger-btn" id="blockBtn"><i class="fas fa-ban"></i> Block User</button>
                         </div>
                     </div>
                 </div>
@@ -240,7 +325,9 @@
                         <button id="saveProfileBtn" class="btn">Save Changes</button>
                     </div>
                 </div>
+
             </div>
+
         </div>
     </div>
 
@@ -252,7 +339,6 @@
             --gray: #aaaaaa;
             --border: #333333;
             --light: #252525;
-            --primary: #8470ff; /* ✅ Added dark mode primary color */
         }
     </style>
 
