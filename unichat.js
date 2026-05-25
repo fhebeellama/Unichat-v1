@@ -1,29 +1,17 @@
-// ==============================
-// FIREBASE IMPORTS
-// ==============================
-import { initializeApp } from "https://www.gstatic.com/firebasejs/10.12.2/firebase-app.js";
-import {
-    getAuth, createUserWithEmailAndPassword,
-    signInWithEmailAndPassword, signOut, onAuthStateChanged
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-auth.js";
-import {
-    getFirestore, collection, addDoc, onSnapshot,
-    query, orderBy, serverTimestamp, doc, setDoc, updateDoc, getDoc, where
-} from "https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore.js";
-
 // ============================================
 // FIREBASE CONFIGURATION
 // ============================================
-// 🔴 Replace with your Firebase config from Console
-const firebaseConfig = {
-  apiKey: "AIzaSyDdVR0x17NB3ma4ulyL-Jdv3rukfNijwgs",
-  authDomain: "unichat-v1.firebaseapp.com",
-  projectId: "unichat-v1",
-  storageBucket: "unichat-v1.firebasestorage.app",
-  messagingSenderId: "1014572806433",
-  appId: "1:1014572806433:web:d496a60f3011993217ce60"
-};
+// ✅ No need for import statements if you have script tags in HTML
+// Just use the firebaseConfig you already have:
 
+const firebaseConfig = {
+    apiKey: "AIzaSyDdVR0x17NB3ma4ulyL-Jdv3rukfNijwgs",
+    authDomain: "unichat-v1.firebaseapp.com",
+    projectId: "unichat-v1",
+    storageBucket: "unichat-v1.firebasestorage.app",
+    messagingSenderId: "1014572806433",
+    appId: "1:1014572806433:web:d496a60f3011993217ce60"
+};
 
 // Initialize Firebase
 firebase.initializeApp(firebaseConfig);
@@ -46,22 +34,17 @@ let userListListener = null;
 // INITIALIZATION
 // ============================================
 document.addEventListener('DOMContentLoaded', () => {
-    // Apply saved dark mode
     if (darkMode) {
         document.body.classList.add('dark-mode');
         document.getElementById('darkModeToggle').classList.add('active');
     }
 
-    // Splash screen click
     document.getElementById('splashScreen').addEventListener('click', () => {
         document.getElementById('splashScreen').classList.add('hidden');
         document.querySelector('.auth-container').classList.remove('hidden');
     });
 
-    // Auth form switching
     setupAuthForms();
-
-    // Setup all event listeners
     setupEventListeners();
 });
 
@@ -101,13 +84,12 @@ function setupAuthForms() {
             const userCred = await firebase.auth().createUserWithEmailAndPassword(auth, email, password);
             const uid = userCred.user.uid;
 
-            // Save user profile
             await db.ref('users/' + uid).set({
                 uid: uid,
                 name: name,
                 email: email,
                 bio: 'Hey there! I am using Unichat.',
-                pic: `https://i.pravatar.cc/150?u=${uid}`,
+                pic: 'https://i.pravatar.cc/150?u=' + uid,
                 status: 'online',
                 createdAt: Date.now()
             });
@@ -115,7 +97,6 @@ function setupAuthForms() {
             btn.textContent = 'Create Account';
             btn.disabled = false;
             enterApp(userCred.user);
-
         } catch (err) {
             alert(err.message);
             const btn = document.querySelector('#signupFormElement .btn');
@@ -138,14 +119,11 @@ function setupAuthForms() {
             btn.disabled = true;
 
             const userCred = await firebase.auth().signInWithEmailAndPassword(auth, email, password);
-
-            // Update online status
             await db.ref('users/' + userCred.user.uid).update({ status: 'online' });
 
             btn.textContent = 'Sign In';
             btn.disabled = false;
             enterApp(userCred.user);
-
         } catch (err) {
             alert(err.message);
             const btn = document.querySelector('#signinFormElement .btn');
@@ -162,7 +140,6 @@ function enterApp(user) {
     currentUser = user;
     document.querySelector('.auth-container').classList.add('hidden');
     document.getElementById('dashboard').classList.remove('hidden');
-
     loadUserProfile();
     loadUserList();
     loadEmojis();
@@ -178,14 +155,10 @@ function loadUserProfile() {
         const data = snap.val();
         if (data) {
             currentUserData = data;
-
-            // Header menu
             const letter = data.name.charAt(0).toUpperCase();
             document.getElementById('menuAvatar').textContent = letter;
             document.getElementById('menuUserName').textContent = data.name;
             document.getElementById('menuUserStatus').textContent = data.status === 'online' ? '● Online' : '○ Offline';
-
-            // Edit profile fields
             document.getElementById('editSidebarName').value = data.name;
             document.getElementById('editSidebarBio').value = data.bio || 'Hey there! I am using Unichat.';
             document.getElementById('editProfileAvatar').textContent = letter;
@@ -229,25 +202,20 @@ function loadUserList() {
 // ============================================
 function openChat(user) {
     activeChatUser = user;
-
-    // Chat header
     const letter = user.name.charAt(0).toUpperCase();
+
     document.getElementById('chatHeaderAvatar').textContent = letter;
     document.getElementById('chatHeaderName').textContent = user.name;
     document.getElementById('chatHeaderStatus').className = 'status-indicator ' + (user.status === 'online' ? 'online' : '');
     document.getElementById('chatHeaderStatusText').textContent = user.status === 'online' ? 'Online' : 'Offline';
 
-    // Right sidebar profile
     document.getElementById('profileAvatar').textContent = letter;
     document.getElementById('profileName').textContent = user.name;
     document.getElementById('profileBio').textContent = user.bio || 'No bio';
     document.getElementById('profileStatus').textContent = user.status === 'online' ? '● Online' : '○ Offline';
     document.getElementById('profileStatusIndicator').className = 'status-indicator ' + (user.status === 'online' ? 'online' : '');
 
-    // Load messages
     loadMessages(user.uid);
-
-    // Close sidebar if open
     document.getElementById('rightSidebar').classList.remove('active');
 }
 
@@ -271,12 +239,12 @@ function loadMessages(chatUid) {
         }
 
         const div = document.createElement('div');
-        div.className = `message ${isMe ? 'sent' : 'received'}`;
+        div.className = 'message ' + (isMe ? 'sent' : 'received');
 
         if (msg.type === 'image') {
-            div.innerHTML = `<img src="${msg.fileUrl}" alt="image"><span class="time">${msg.time}</span>`;
+            div.innerHTML = '<img src="' + msg.fileUrl + '" alt="image"><span class="time">' + msg.time + '</span>';
         } else {
-            div.innerHTML = `${msg.text}<span class="time">${msg.time}</span>`;
+            div.innerHTML = msg.text + '<span class="time">' + msg.time + '</span>';
         }
 
         chatEl.appendChild(div);
@@ -319,7 +287,6 @@ async function sendImage() {
     const chatId = [currentUser.uid, activeChatUser.uid].sort().join('_');
     const time = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
 
-    // Upload to Firebase Storage
     const storageRef = storage.ref('images/' + Date.now() + '_' + file.name);
 
     try {
@@ -333,7 +300,6 @@ async function sendImage() {
             time: time,
             createdAt: Date.now()
         });
-
     } catch (err) {
         alert('Error uploading image: ' + err.message);
     }
@@ -345,16 +311,7 @@ async function sendImage() {
 // EMOJI PICKER
 // ============================================
 function loadEmojis() {
-    const emojis = [
-        '😀', '😁', '😂', '🤣', '😃', '😄', '😅', '😆', '😉', '😊',
-        '😋', '😎', '😍', '🥰', '😘', '😗', '😙', '😚', '🙂', '🤗',
-        '🤩', '🤔', '🤨', '😐', '😑', '😶', '🙄', '😏', '😣', '😥',
-        '😮', '🤐', '😯', '😪', '😫', '🥱', '😴', '😌', '😛', '😜',
-        '😝', '🤤', '😒', '😓', '😔', '😕', '🙃', '🤑', '😲', '☹️',
-        '🙁', '😖', '😞', '😟', '😤', '😢', '😭', '😦', '😧', '😨',
-        '😩', '🤯', '😬', '😰', '😱', '🥶', '🥵', '😳', '🤪', '😵',
-        '😡', '😠', '🤬', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '😇'
-    ];
+    const emojis = ['😀', '😁', '😂', '🤣', '😃', '😄', '😅', '😆', '😉', '😊', '😋', '😎', '😍', '🥰', '😘', '😗', '😙', '😚', '🙂', '🤗', '🤩', '🤔', '😐', '😑', '😶', '🙄', '😏', '😣', '😥', '😮', '🤐', '😯', '😪', '😫', '🥱', '😴', '😌', '😛', '😜', '😝', '😒', '😓', '😔', '😕', '🤑', '😲', '☹️', '🙁', '😖', '😞', '😟', '😤', '😢', '😭', '😦', '😧', '😨', '😩', '🤯', '😬', '😰', '😱', '🥶', '🥵', '😳', '😡', '😠', '🤬', '😷', '🤒', '🤕', '🤢', '🤮', '🤧', '😇'];
 
     const container = document.getElementById('emojiContent');
     container.innerHTML = '';
@@ -364,8 +321,7 @@ function loadEmojis() {
         span.className = 'emoji-item';
         span.textContent = emoji;
         span.addEventListener('click', () => {
-            const input = document.getElementById('messageInput');
-            input.value += emoji;
+            document.getElementById('messageInput').value += emoji;
             document.getElementById('emojiPicker').classList.add('hidden');
         });
         container.appendChild(span);
@@ -376,13 +332,13 @@ function loadEmojis() {
 // EVENT LISTENERS
 // ============================================
 function setupEventListeners() {
-    // Message input
+    // Send message
     document.getElementById('sendBtn').addEventListener('click', sendMessage);
     document.getElementById('messageInput').addEventListener('keydown', (e) => {
         if (e.key === 'Enter') sendMessage();
     });
 
-    // Image input
+    // Send image
     document.getElementById('imageInput').addEventListener('change', sendImage);
 
     // Emoji picker
@@ -390,7 +346,7 @@ function setupEventListeners() {
         document.getElementById('emojiPicker').classList.toggle('hidden');
     });
 
-    // Close emoji picker when clicking outside
+    // Close emoji picker
     document.addEventListener('click', (e) => {
         const picker = document.getElementById('emojiPicker');
         const btn = document.getElementById('emojiBtn');
@@ -414,45 +370,38 @@ function setupEventListeners() {
         document.getElementById('settingsDropdown').classList.remove('show');
     });
 
-    // Settings button
     document.getElementById('settingsBtn').addEventListener('click', () => {
         document.getElementById('mainDropdown').classList.remove('show');
         document.getElementById('settingsDropdown').classList.toggle('show');
     });
 
-    // Back to menu
     document.getElementById('backToMenuBtn').addEventListener('click', () => {
         document.getElementById('settingsDropdown').classList.remove('show');
         document.getElementById('mainDropdown').classList.toggle('show');
     });
 
-    // Dark mode toggle
+    // Dark mode
     document.getElementById('darkBtn').addEventListener('click', () => {
         darkMode = !darkMode;
         document.body.classList.toggle('dark-mode', darkMode);
         document.getElementById('darkModeToggle').classList.toggle('active', darkMode);
         localStorage.setItem('unichat_dark', darkMode);
-
-        // Close menu
         document.getElementById('settingsDropdown').classList.remove('show');
     });
 
-    // Active status toggle
+    // Active status
     document.getElementById('statusBtn').addEventListener('click', async () => {
         activeStatus = !activeStatus;
         document.getElementById('statusToggle').classList.toggle('active', activeStatus);
-
         if (currentUser) {
             await db.ref('users/' + currentUser.uid).update({
                 status: activeStatus ? 'online' : 'offline'
             });
         }
-
-        // Close menu
         document.getElementById('settingsDropdown').classList.remove('show');
     });
 
-    // Edit profile from header menu
+    // Edit profile from menu
     document.getElementById('editBtn').addEventListener('click', () => {
         document.getElementById('settingsDropdown').classList.remove('show');
         openEditProfile();
@@ -478,123 +427,4 @@ function setupEventListeners() {
     document.getElementById('closeSidebarBtn').addEventListener('click', () => {
         document.getElementById('rightSidebar').classList.remove('active');
     });
-// right sidebar - edit profile button
-document.getElementById('editProfileBtn').addEventListener('click', () => {
-    openEditProfile();
-});
-
-// Open edit profile
-function openEditProfile() {
-    if (!currentUserData) return;
-
-    document.getElementById('sidebarViewMode').classList.add('hidden');
-    document.getElementById('sidebarEditMode').classList.remove('hidden');
-    document.getElementById('rightSidebar').classList.add('active');
-
-    document.getElementById('editSidebarName').value = currentUserData.name;
-    document.getElementById('editSidebarBio').value = currentUserData.bio || 'Hey there! I am using Unichat.';
-    document.getElementById('editProfileAvatar').textContent = currentUserData.name.charAt(0).toUpperCase();
-}
-
-// Save profile
-document.getElementById('saveProfileBtn').addEventListener('click', async () => {
-    const name = document.getElementById('editSidebarName').value.trim();
-    const bio = document.getElementById('editSidebarBio').value.trim();
-
-    if (!name) return alert('Name cannot be empty');
-
-    try {
-        await db.ref('users/' + currentUser.uid).update({
-            name: name,
-            bio: bio
-        });
-
-        alert('Profile updated successfully!');
-        document.getElementById('rightSidebar').classList.remove('active');
-    } catch (err) {
-        alert('Error updating profile: ' + err.message);
-    }
-});
-
-// Close edit sidebar
-document.getElementById('closeEditBtn').addEventListener('click', () => {
-    document.getElementById('sidebarEditMode').classList.add('hidden');
-    document.getElementById('sidebarViewMode').classList.remove('hidden');
-    document.getElementById('rightSidebar').classList.remove('active');
-});
-
-// Close dropdowns when clicking outside
-document.addEventListener('click', (e) => {
-    const menu = document.getElementById('headermenu');
-    const mainDropdown = document.getElementById('mainDropdown');
-    const settingsDropdown = document.getElementById('settingsDropdown');
-
-    if (!menu.contains(e.target) && !e.target.closest('.dropdown-menu')) {
-        mainDropdown.classList.remove('show');
-        settingsDropdown.classList.remove('show');
-    }
-});
-
-// ============================================
-// AUDIO CALL (Simulation)
-// ============================================
-document.querySelector('.call-btn.audio').addEventListener('click', () => {
-    if (!activeChatUser) return alert('Select a user first');
-    const confirmCall = confirm(`Call ${activeChatUser.name}?`);
-    if (confirmCall) {
-        alert(`Calling ${activeChatUser.name}... (Feature coming soon)`);
-    }
-});
-
-// ============================================
-// VIDEO CALL (Simulation)
-// ============================================
-document.querySelector('.call-btn.video').addEventListener('click', () => {
-    if (!activeChatUser) return alert('Select a user first');
-    const confirmCall = confirm(`Video call ${activeChatUser.name}?`);
-    if (confirmCall) {
-        alert(`Starting video call with ${activeChatUser.name}... (Feature coming soon)`);
-    }
-});
-
-// ============================================
-// CREATE GROUP (Simulation)
-// ============================================
-document.getElementById('createGroupBtn').addEventListener('click', () => {
-    const groupName = prompt('Enter group name:');
-    if (groupName) {
-        alert(`Group "${groupName}" created! (Feature coming soon)`);
-    }
-});
-
-// ============================================
-// BLOCK USER (Simulation)
-// ============================================
-document.getElementById('blockBtn').addEventListener('click', () => {
-    if (!activeChatUser) return;
-    const confirm = confirm(`Block ${activeChatUser.name}?`);
-    if (confirm) {
-        alert(`${activeChatUser.name} has been blocked.`);
-        document.getElementById('rightSidebar').classList.remove('active');
-    }
-});
-
-// ============================================
-// MICROPHONE (Simulation)
-// ============================================
-document.getElementById('micBtn').addEventListener('click', () => {
-    alert('Voice message feature coming soon!');
-});
-
-// ============================================
-// AUTH STATE CHANGE
-// ============================================
-auth.onAuthStateChanged(async (user) => {
-    if (user) {
-        // User is logged in
-        console.log('User logged in:', user.email);
-    } else {
-        // User is logged out
-        console.log('User logged out');
-    }
-});
+   
