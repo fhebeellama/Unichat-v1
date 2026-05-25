@@ -1,222 +1,118 @@
+<!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Unichat - Web Messenger</title>
-
-    <!-- CSS -->
     <link rel="stylesheet" href="unichat.css">
-
-    <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
-
-    <!-- JavaScript ✅ Removed type="module" OR we use proper event listeners -->
-    <script type="module" src="./unichat.js"></script>
+    
+    <!-- Firebase v8 SDK (Legacy - easier for browser) -->
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-database.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-storage.js"></script>
 </head>
-
 <body>
 
-    <!-- ============================= -->
     <!-- SPLASH SCREEN -->
-    <!-- ============================= -->
     <div id="splashScreen" class="splash-overlay">
         <h1>Welcome to Unichat!</h1>
         <p>Tap anywhere to continue</p>
     </div>
 
-    <!-- ============================= -->
     <!-- AUTH CONTAINER -->
-    <!-- ============================= -->
     <div class="auth-container hidden">
-
         <!-- SIGN UP -->
         <div id="signupForm" class="auth-form">
-
             <h2>Create Account</h2>
-
             <form id="signupFormElement">
-
                 <div class="form-group">
                     <label>Complete Name</label>
                     <input type="text" id="signupName" required>
                 </div>
-
                 <div class="form-group">
                     <label>Email</label>
                     <input type="email" id="signupEmail" required>
                 </div>
-
                 <div class="form-group">
                     <label>Password</label>
                     <input type="password" id="signupPassword" required>
                 </div>
-
                 <div class="form-group">
                     <label>Confirm Password</label>
                     <input type="password" id="signupConfirmPassword" required>
                 </div>
-
-                <button type="submit" class="btn">
-                    Create Account
-                </button>
-
+                <button type="submit" class="btn">Create Account</button>
             </form>
-
             <div class="switch-auth">
-                Already have an account?
-                <a href="#" id="showSignin">Sign In</a>
+                Already have an account? <a href="#" id="showSignin">Sign In</a>
             </div>
-
         </div>
 
         <!-- SIGN IN -->
         <div id="signinForm" class="auth-form hidden">
-
             <h2>Sign In</h2>
-
             <form id="signinFormElement">
-
                 <div class="form-group">
                     <label>Email</label>
                     <input type="email" id="signinEmail" required>
                 </div>
-
                 <div class="form-group">
                     <label>Password</label>
                     <input type="password" id="signinPassword" required>
                 </div>
-
-                <button type="submit" class="btn">
-                    Sign In
-                </button>
-
+                <button type="submit" class="btn">Sign In</button>
             </form>
-
             <div class="switch-auth">
-                Don’t have an account?
-                <a href="#" id="showSignup">Sign Up</a>
+                Don't have an account? <a href="#" id="showSignup">Sign Up</a>
             </div>
-
         </div>
-
     </div>
 
-    <!-- ============================= -->
     <!-- DASHBOARD -->
-    <!-- ============================= -->
-    <div id="dashboard" class="dashboard" style="display: none;">
-
-        <!-- ============================= -->
+    <div id="dashboard" class="dashboard hidden">
         <!-- HEADER -->
-        <!-- ============================= -->
         <header class="header">
-
-            <div class="logo">
-                💬 UNICHAT
-            </div>
-
+            <div class="logo">💬 UNICHAT</div>
             <div class="menu-header">
-
-                <div id="headermenu">
-                    ☰ Menu
-                </div>
-
+                <div id="headermenu">☰ Menu</div>
                 <!-- MAIN MENU -->
                 <div id="mainDropdown" class="dropdown-menu hidden">
-
                     <div class="profile-section">
-
-                        <div class="profile-avatar" id="menuAvatar">
-                            U
-                        </div>
-
-                        <div class="profile-name" id="menuUserName">
-                            User Name
-                        </div>
-
-                        <div class="profile-status" id="menuUserStatus">
-                            ● Online
-                        </div>
-
+                        <div class="profile-avatar" id="menuAvatar">U</div>
+                        <div class="profile-name" id="menuUserName">User Name</div>
+                        <div class="profile-status" id="menuUserStatus">● Online</div>
                     </div>
-
-                    <div class="menu-item" id="settingsBtn">
-                        <i class="fas fa-cog"></i>
-                        Settings
-                    </div>
-
-                    <div class="menu-item logout-btn" id="logoutBtn">
-                        <i class="fas fa-sign-out-alt"></i>
-                        Logout
-                    </div>
-
+                    <div class="menu-item" id="settingsBtn"><i class="fas fa-cog"></i> Settings</div>
+                    <div class="menu-item logout-btn" id="logoutBtn"><i class="fas fa-sign-out-alt"></i> Logout</div>
                 </div>
-
                 <!-- SETTINGS MENU -->
                 <div id="settingsDropdown" class="dropdown-menu hidden">
-
-                    <div class="menu-item" id="backToMenuBtn">
-                        <i class="fas fa-arrow-left"></i>
-                        Back
-                    </div>
-
-                    <div class="menu-item" id="statusBtn">
-                        <i class="fas fa-circle"></i>
-                        Active Status
-                        <div class="toggle-switch active" id="statusToggle"></div>
-                    </div>
-
-                    <div class="menu-item" id="darkBtn">
-                        <i class="fas fa-moon"></i>
-                        Dark Mode
-                        <div class="toggle-switch" id="darkModeToggle"></div>
-                    </div>
-
-                    <!-- ✅ EDIT PROFILE IN MENU → NOW WORKS -->
-                    <div class="menu-item" id="editBtn">
-                        <i class="fas fa-user-edit"></i>
-                        Edit Profile
-                    </div>
-
+                    <div class="menu-item" id="backToMenuBtn"><i class="fas fa-arrow-left"></i> Back</div>
+                    <div class="menu-item" id="statusBtn"><i class="fas fa-circle"></i> Active Status <div class="toggle-switch active" id="statusToggle"></div></div>
+                    <div class="menu-item" id="darkBtn"><i class="fas fa-moon"></i> Dark Mode <div class="toggle-switch" id="darkModeToggle"></div></div>
+                    <div class="menu-item" id="editBtn"><i class="fas fa-user-edit"></i> Edit Profile</div>
                 </div>
-
             </div>
-
         </header>
 
-        <!-- ============================= -->
         <!-- CHAT APP -->
-        <!-- ============================= -->
         <div class="chat-app">
-
-            <!-- ============================= -->
             <!-- SIDEBAR -->
-            <!-- ============================= -->
             <div class="sidebar">
-
                 <div class="header">
-
                     <h3>Chats</h3>
-
-                    <button class="icon-btn" id="createGroupBtn">
-                        <i class="fas fa-users"></i>
-                    </button>
-
+                    <button class="icon-btn" id="createGroupBtn"><i class="fas fa-users"></i></button>
                 </div>
-
                 <div class="search-bar">
                     <input type="text" id="searchChat" placeholder="Search users...">
                 </div>
-
                 <div class="user-list" id="userList"></div>
-
             </div>
 
-            <!-- ============================= -->
             <!-- CHAT AREA -->
-            <!-- ============================= -->
             <div class="chat-area">
-
                 <div class="chat-header">
                     <div class="user-profile" id="openProfileBtn">
                         <div class="avatar-container">
@@ -229,8 +125,8 @@
                         </div>
                     </div>
                     <div class="header-actions">
-                        <button class="call-btn audio" id="audioCallBtn"><i class="fas fa-phone"></i></button>
-                        <button class="call-btn video" id="videoCallBtn"><i class="fas fa-video"></i></button>
+                        <button class="call-btn audio"><i class="fas fa-phone"></i></button>
+                        <button class="call-btn video"><i class="fas fa-video"></i></button>
                     </div>
                 </div>
 
@@ -243,28 +139,19 @@
                         <label for="imageInput" class="icon-btn"><i class="far fa-image"></i></label>
                         <input type="file" id="imageInput" accept="image/*" hidden>
                         <button class="icon-btn" id="emojiBtn">😊</button>
-                        <button id="micBtn" class="icon-btn"><i class="fas fa-microphone"></i></button>
+                        <button class="icon-btn" id="micBtn"><i class="fas fa-microphone"></i></button>
                     </div>
                     <input type="text" id="messageInput" placeholder="Type a message...">
                     <button class="send-btn" id="sendBtn"><i class="fas fa-paper-plane"></i></button>
                 </div>
 
                 <div class="emoji-picker hidden" id="emojiPicker">
-                    <div class="emoji-picker-header">
-                        <button class="emoji-tab-btn active" data-tab="emoji">😀</button>
-                        <button class="emoji-tab-btn" data-tab="gif">GIF</button>
-                    </div>
-                    <div class="emoji-search"><input type="text" id="emojiSearch" placeholder="Search..."></div>
                     <div class="emoji-content" id="emojiContent"></div>
                 </div>
-
             </div>
 
-            <!-- ============================= -->
             <!-- RIGHT SIDEBAR -->
-            <!-- ============================= -->
             <div class="right-sidebar" id="rightSidebar">
-
                 <!-- PROFILE VIEW -->
                 <div id="sidebarViewMode">
                     <div class="right-sidebar-header">
@@ -286,11 +173,8 @@
                             <div class="section-label"><i class="fas fa-user"></i> About</div>
                             <div class="section-content" id="profileBio">Hey there! I am using Unichat.</div>
                         </div>
-                        <!-- ✅ ADDED MISSING EDIT PROFILE BUTTON IN SIDEBAR -->
                         <div class="profile-section-item">
-                            <button class="btn" id="editProfileBtn">
-                                <i class="fas fa-user-edit"></i> Edit Profile
-                            </button>
+                            <button class="btn" id="editProfileBtn"><i class="fas fa-user-edit"></i> Edit Profile</button>
                         </div>
                         <div class="profile-section-item">
                             <button class="btn danger-btn" id="blockBtn"><i class="fas fa-ban"></i> Block User</button>
@@ -321,25 +205,11 @@
                             <label>Bio</label>
                             <textarea id="editSidebarBio" rows="3"></textarea>
                         </div>
-                        <button id="saveProfileBtn" class="btn">Save Changes</button>
+                        <button class="btn" id="saveProfileBtn">Save Changes</button>
                     </div>
                 </div>
-
             </div>
-
         </div>
     </div>
-
-    <style>
-        body.dark-mode {
-            --bg: #121212;
-            --white: #1e1e1e;
-            --text: #f1f1f1;
-            --gray: #aaaaaa;
-            --border: #333333;
-            --light: #252525;
-        }
-    </style>
-
 </body>
 </html>
