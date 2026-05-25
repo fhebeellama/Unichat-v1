@@ -689,6 +689,69 @@ function previewProfilePic(event) {
 }
 window.previewProfilePic = previewProfilePic;
 
+// ==============================
+// FIX EDIT PROFILE BUTTONS
+// ==============================
+
+// Right sidebar edit button
+document.getElementById("editProfileBtn").addEventListener("click", () => {
+
+    const sidebar = document.getElementById("rightSidebar");
+
+    // Force sidebar open
+    sidebar.classList.add("active");
+
+    // Open edit mode
+    openSidebarEditProfile();
+});
+
+// Settings menu edit button
+document.getElementById("editBtn").addEventListener("click", () => {
+
+    const sidebar = document.getElementById("rightSidebar");
+
+    // Open sidebar first
+    sidebar.classList.add("active");
+
+    // Open edit profile
+    openSidebarEditProfile();
+
+    // Close dropdowns
+    document.getElementById("settingsDropdown").classList.add("hidden");
+    document.getElementById("mainDropdown").classList.add("hidden");
+});
+
+// Close edit mode
+document.getElementById("closeEditBtn").addEventListener("click", () => {
+
+    closeSidebarEditMode();
+
+});
+
+// Save profile
+document.getElementById("saveProfileBtn").addEventListener("click", () => {
+
+    saveSidebarProfile();
+
+});
+
+// Preview profile image
+document.getElementById("editProfilePic").addEventListener("change", previewProfilePic);
+
+document.getElementById("openProfileBtn").addEventListener("click", () => {
+
+    const sidebar = document.getElementById("rightSidebar");
+
+    sidebar.classList.add("active");
+
+    if (activeChatUser) {
+        loadUserProfileToSidebar();
+    } else {
+        loadMyProfileToSidebar();
+    }
+
+});
+
 async function saveSidebarProfile() {
     const newName = document.getElementById("editSidebarName").value.trim();
     const newBio = document.getElementById("editSidebarBio").value.trim();
@@ -777,7 +840,48 @@ window.createGroup = createGroup;
 // INITIAL CHECK
 // ==============================
 window.addEventListener("DOMContentLoaded", () => {
-    // Wait for splash click
+
+    const splash = document.getElementById("splashScreen");
+
+    if (splash) {
+        splash.addEventListener("click", startApp);
+        splash.addEventListener("touchstart", startApp);
+    }
+
+    document.getElementById("headermenu").addEventListener("click", toggleMenu);
+
+document.getElementById("settingsBtn").addEventListener("click", showSettings);
+
+document.getElementById("backToMenuBtn").addEventListener("click", showMainMenu);
+
+document.getElementById("logoutBtn").addEventListener("click", logout);
+
+document.getElementById("darkBtn").addEventListener("click", toggleDarkMode);
+
+document.getElementById("statusBtn").addEventListener("click", toggleMyStatus);
+
+document.getElementById("sendBtn").addEventListener("click", sendMessage);
+
+document.getElementById("messageInput").addEventListener("keypress", handleKeyPress);
+
+document.getElementById("emojiBtn").addEventListener("click", toggleEmojiPicker);
+
+document.getElementById("audioCallBtn").addEventListener("click", startAudioCall);
+
+document.getElementById("videoCallBtn").addEventListener("click", startVideoCall);
+
+document.getElementById("blockBtn").addEventListener("click", toggleBlockUser);
+
+document.getElementById("searchChat").addEventListener("input", (e) => {
+    filterChat(e.target.value);
+});
+
+document.getElementById("createGroupBtn").addEventListener("click", createGroup);
+
+document.getElementById("imageInput").addEventListener("change", function () {
+    sendImage(this);
+});
+
 });
 
 // ==============================
@@ -801,14 +905,15 @@ document.addEventListener("click", (e) => {
     }
 
     // Close emoji picker when clicking outside
-    const emojiPicker = document.getElementById("emojiPicker");
+    const emojiBtn = document.getElementById("emojiBtn");
     const emojiBtn = document.querySelector(".icon-btn[onclick='toggleEmojiPicker()']");
     if (
         emojiPicker &&
         !emojiPicker.classList.contains("hidden") &&
         !emojiPicker.contains(e.target) &&
-        !emojiBtn.contains(e.target)
+        emojiBtn && !emojiBtn.contains(e.target)
     ) {
         emojiPicker.classList.add("hidden");
     }
 });
+
