@@ -26,17 +26,20 @@ body {
     min-height: 100vh;
     overflow: hidden;
     color: var(--text);
-    position: relative;
+    position: relative; /* ✅ Critical for stacking */
 }
 
-/* ✅ FIXED HIDDEN CLASS — NO MORE CONFLICTS */
+/* ✅ HIDDEN CLASS — WORKS EVERYWHERE */
 .hidden { 
     display: none !important; 
+    visibility: hidden !important;
+    opacity: 0 !important;
+    pointer-events: none !important;
 }
 
 ::-webkit-scrollbar { width: 0; height: 0; }
 
-/* ========================= ✅ FIXED SPLASH SCREEN ========================= */
+/* ========================= ✅ FIXED SPLASH SCREEN — CLICKABLE ========================= */
 .splash-overlay {
     position: fixed; 
     inset: 0;
@@ -45,10 +48,13 @@ body {
     flex-direction: column;
     justify-content: center; 
     align-items: center;
-    z-index: 99999;
+    z-index: 99999; /* ✅ NOW HIGHEST — ON TOP OF EVERYTHING */
     color: white;
     text-align: center; 
     cursor: pointer;
+    pointer-events: auto !important; /* ✅ FORCE CLICKS TO WORK */
+    visibility: visible;
+    opacity: 1;
 }
 .splash-overlay h1 { font-size: 3rem; margin-bottom: 10px; }
 .splash-overlay p { font-size: 1.1rem; opacity: 0.9; }
@@ -60,7 +66,7 @@ body {
     padding: 30px; border-radius: 15px;
     box-shadow: 0 5px 20px rgba(0,0,0,0.1);
     position: relative;
-    z-index: 10;
+    z-index: 10; /* ✅ BELOW SPLASH */
 }
 .auth-form h2 { text-align: center; margin-bottom: 20px; }
 .form-group { margin-bottom: 15px; }
@@ -89,8 +95,7 @@ body {
     flex-direction: column; 
     height: 100vh; 
     position: relative;
-    z-index: 20;
-    background: var(--bg); /* ✅ Added background so it's never white */
+    z-index: 20; /* ✅ BELOW SPLASH */
 }
 
 .header {
@@ -451,10 +456,12 @@ body {
     min-width: 0;
     overflow: hidden;
     border: none;
-    display: none; /* ✅ Fixed visibility issue */
+    opacity: 0;
+    visibility: hidden;
 }
 .right-sidebar.active {
-    display: flex;
+    opacity: 1;
+    visibility: visible;
     width: 300px;
     min-width: 300px;
     overflow: visible;
