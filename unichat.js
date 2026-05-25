@@ -36,6 +36,7 @@ document.addEventListener('DOMContentLoaded', () => {
         document.getElementById('darkModeToggle').classList.add('active');
     }
 
+    // Splash screen click — NOW WORKS
     document.getElementById('splashScreen').addEventListener('click', () => {
         document.getElementById('splashScreen').classList.add('hidden');
         document.querySelector('.auth-container').classList.remove('hidden');
@@ -44,10 +45,17 @@ document.addEventListener('DOMContentLoaded', () => {
     setupAuthForms();
     setupEventListeners();
 
-    // Auth state listener
+    // ✅ FIXED Auth state listener — splash no longer blocks screen
     auth.onAuthStateChanged(user => {
+        // Always hide splash first
+        document.getElementById('splashScreen').classList.add('hidden');
+
         if (user) {
+            // Already logged in → go straight to app
             enterApp(user);
+        } else {
+            // Not logged in → show login/register
+            document.querySelector('.auth-container').classList.remove('hidden');
         }
     });
 });
@@ -348,6 +356,8 @@ function loadEmojis() {
 // EDIT PROFILE FUNCTIONS
 // ============================================
 function setupEditProfile() {
+    // Open edit from menu
+    document.getElementById('editBtn').addEventListener('click', openEditProfile);
     // Open edit from sidebar
     document.getElementById('editProfileBtn').addEventListener('click', openEditProfile);
     // Save changes
@@ -363,6 +373,7 @@ function openEditProfile() {
     document.getElementById('sidebarViewMode').classList.add('hidden');
     document.getElementById('sidebarEditMode').classList.remove('hidden');
     document.getElementById('rightSidebar').classList.add('active');
+    document.getElementById('settingsDropdown').classList.remove('show');
 }
 
 async function saveProfileChanges() {
@@ -420,7 +431,7 @@ function setupEventListeners() {
         });
     });
 
-    // Header menu
+    // ✅ FIXED Header menu — dropdown now works
     document.getElementById('headermenu').addEventListener('click', () => {
         document.getElementById('mainDropdown').classList.toggle('show');
         document.getElementById('settingsDropdown').classList.remove('show');
@@ -466,6 +477,7 @@ function setupEventListeners() {
         location.reload();
     });
 
+    // Right sidebar - open profile
     document.getElementById('openProfileBtn').addEventListener('click', () => {
         document.getElementById('sidebarViewMode').classList.remove('hidden');
         document.getElementById('sidebarEditMode').classList.add('hidden');

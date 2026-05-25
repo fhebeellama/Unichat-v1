@@ -1075,4 +1075,10 @@ body.dark-mode ::-webkit-scrollbar-thumb:hover {
 
 .w-full {
     width: 100%;
+}.dropdown-menu.show {
+    display: block !important;
+}
+
+.right-sidebar.active {
+    display: flex !important;
 }
